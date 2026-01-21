@@ -233,7 +233,7 @@ export default function Billing() {
                   <option value="">-- Choose Plan --</option>
                   {plans.map(p => (
                     <option key={p.plan_id} value={p.plan_id}>
-                      {p.name} - ${p.price}
+                      {p.name} - Rs. {p.price}
                     </option>
                   ))}
                 </select>
@@ -241,7 +241,7 @@ export default function Billing() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Amount ($)</label>
+                  <label className="text-sm font-medium text-gray-700">Amount (Rs.)</label>
                   <input type="number" required readOnly
                     className="w-full p-3 border rounded-xl bg-gray-50 text-gray-600 font-bold mt-1"
                     value={formData.amount}
@@ -312,7 +312,7 @@ export default function Billing() {
                   
                   {/* Revenue Badge */}
                   <span className="ml-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-                    Revenue: ${monthlyTotal.toLocaleString()}
+                    Revenue: Rs. {monthlyTotal.toLocaleString()}
                   </span>
                 </div>
 
@@ -411,7 +411,7 @@ export default function Billing() {
                     </div>
 
                     <div className="text-right">
-                      <p className="text-lg font-bold text-gray-900">${pay.amount}</p>
+                      <p className="text-lg font-bold text-gray-900">Rs. {pay.amount}</p>
                       
                       <div className="flex flex-col items-end gap-1 mt-1">
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border shadow-sm

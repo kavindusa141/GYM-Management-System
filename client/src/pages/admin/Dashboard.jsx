@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import { 
   Users, DollarSign, Activity, Calendar, TrendingUp, UserPlus 
 } from 'lucide-react';
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
         />
         <StatCard 
           title="Total Revenue" 
-          value={`$${stats.totalRevenue}`} 
+          value={formatCurrency(stats.totalRevenue)} 
           icon={<DollarSign className="w-6 h-6 text-green-600" />} 
           color="bg-green-50"
         />

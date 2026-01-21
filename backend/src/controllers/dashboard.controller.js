@@ -13,41 +13,24 @@ exports.getDashboardStats = async (req, res) => {
     // 1. Total Members (Registered Accounts)
     const totalMembers = await User.count({ where: { role: "MEMBER" } });
 
-    // 2. Active Members (Paying Customers with Valid Subscriptions)
-    // This is the "Real" count of current customers
-    const activeMembers = await UserSubscription.count({
-      where: {
-        status: 'ACTIVE',
-        end_date: { [Op.gte]: new Date() } // Expiry date must be in future
-      }
-    });
+    // 2. Total Trainers
+    const totalTrainers = await User.count({ where: { role: "TRAINER" } });
 
-    // 3. Monthly Revenue (Only Verified/Completed Payments this month)
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1); // Set to 1st of current month
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const monthlyRevenue = await Payment.sum("amount", {
+    // 3. Total Revenue (All verified/completed payments)
+    const totalRevenue = await Payment.sum("amount", {
       where: {
-        status: { [Op.or]: ['VERIFIED', 'COMPLETED'] }, // Ignore Pending/Failed
-        transaction_date: { [Op.gte]: startOfMonth }
+        status: { [Op.or]: ['VERIFIED', 'COMPLETED'] }
       }
     }) || 0;
 
-    // 4. Today's Foot Traffic (Attendance)
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const todayAttendance = await Attendance.count({
-      where: {
-        attendance_date: { [Op.gte]: startOfToday }
-      }
-    });
+    // 4. Total Classes
+    const totalClasses = await GymClass.count();
 
     res.json({
       totalMembers,
-      activeMembers,
-      monthlyRevenue,
-      todayAttendance
+      totalTrainers,
+      totalRevenue: Math.round(totalRevenue),
+      totalClasses
     });
 
   } catch (err) {

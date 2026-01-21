@@ -3,6 +3,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { formatCurrency, formatChartCurrency } from '../../utils/currencyFormatter';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell
@@ -46,11 +47,11 @@ export default function Reports() {
     let tableRows = [];
 
     if (type === 'Financial') {
-      tableColumn = ["Month", "Transactions", "Total Revenue ($)"];
+      tableColumn = ["Month", "Transactions", "Total Revenue (Rs.)"];
       tableRows = data.financial.map(row => [
         row.month,
         row.transaction_count,
-        `$${Number(row.total_revenue).toFixed(2)}`
+        `Rs. ${Number(row.total_revenue).toFixed(2)}`
       ]);
     } else if (type === 'Attendance') {
       tableColumn = ["Date", "Total Check-ins"];
@@ -132,8 +133,8 @@ export default function Reports() {
                   <BarChart data={data.financial}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="month" />
-                    <YAxis prefix="$" />
-                    <Tooltip formatter={(value) => `$${value}`} />
+                    <YAxis />
+                    <Tooltip formatter={(value) => formatChartCurrency(value)} />
                     <Bar dataKey="total_revenue" name="Revenue" fill="#3B82F6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -184,7 +185,7 @@ export default function Reports() {
                 Key Insight
               </h4>
               <p className="text-2xl font-black text-gray-900">
-                {activeTab === 'FINANCIAL' && `$${data.financial.reduce((acc, curr) => acc + Number(curr.total_revenue), 0).toLocaleString()}`}
+                {activeTab === 'FINANCIAL' && formatCurrency(data.financial.reduce((acc, curr) => acc + Number(curr.total_revenue), 0))}
                 {activeTab === 'ATTENDANCE' && `${data.attendance.reduce((acc, curr) => acc + Number(curr.count), 0)} Visits`}
                 {activeTab === 'MEMBERSHIP' && `${data.membership.reduce((acc, curr) => acc + Number(curr.member_count), 0)} Members`}
               </p>
@@ -203,7 +204,7 @@ export default function Reports() {
                 {activeTab === 'FINANCIAL' && data.financial.map((item, i) => (
                   <div key={i} className="flex justify-between text-sm">
                     <span className="text-gray-500">{item.month}</span>
-                    <span className="font-bold text-gray-900">${Number(item.total_revenue).toLocaleString()}</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(Number(item.total_revenue))}</span>
                   </div>
                 ))}
 

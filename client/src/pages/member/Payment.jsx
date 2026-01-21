@@ -53,7 +53,7 @@ export default function MemberPayment() {
         {plans.map(plan => (
           <div key={plan.plan_id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition-shadow">
             <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
-            <div className="text-3xl font-black text-blue-600 my-2">${plan.price}</div>
+            <div className="text-3xl font-black text-blue-600 my-2">Rs. {plan.price}</div>
             <p className="text-gray-500 mb-6 flex-1 text-sm">{plan.description}</p>
             <button onClick={() => setSelectedPlan(plan)} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors">
               Choose Plan
@@ -93,7 +93,7 @@ export default function MemberPayment() {
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setSelectedPlan(null)} className="flex-1 py-3 bg-gray-100 font-bold rounded-xl hover:bg-gray-200">Cancel</button>
-                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700">Pay ${selectedPlan.price}</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700">Pay Rs. {selectedPlan.price}</button>
               </div>
             </form>
           </div>
@@ -123,7 +123,7 @@ export default function MemberPayment() {
                     <tr key={pay.payment_id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">{new Date(pay.transaction_date || pay.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 font-bold">{pay.MembershipPlan?.name || 'Unknown Plan'}</td>
-                      <td className="px-6 py-4">${pay.amount}</td>
+                      <td className="px-6 py-4">Rs. {pay.amount}</td>
                       <td className="px-6 py-4">
                         <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded uppercase">{pay.payment_method}</span>
                       </td>
