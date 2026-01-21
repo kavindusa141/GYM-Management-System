@@ -1,12 +1,12 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const nodemailer = require("nodemailer"); // Import Nodemailer
+const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE } = require("../utils/emailTemplates");
 require("dotenv").config();
 
-// Configure Email Transporter (Use your email details)
+// Configure Email Transporter
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
@@ -22,8 +22,11 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
 
+    // Check if user exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
+      // Note: If you previously crashed here, the user might already exist in the DB.
+      // Try a different email address if you see this error.
       return res.status(400).json({ message: "Email already exists" });
     }
 
@@ -33,8 +36,8 @@ exports.register = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // Expires in 10 mins
 
-    // Create user (Status = false)
-    await User.create({
+    // --- FIX IS HERE: Assign result to 'newUser' ---
+    const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
@@ -45,13 +48,11 @@ exports.register = async (req, res) => {
       otp_expires_at: otpExpiry
     });
 
-    // 2. Generate Member ID (RFK-M-ID)
+    // 2. Generate Member ID (RFK-M-ID) using the new user's ID
     const customId = `RFK-M-${newUser.user_id}`;
     await newUser.update({ member_code: customId });
 
-
     // --- PREPARE HTML EMAIL ---
-    // Replace the placeholders in the template with actual data
     const emailHtml = EMAIL_VERIFY_TEMPLATE
       .replace("{{email}}", email)
       .replace("{{otp}}", otp);
@@ -68,7 +69,7 @@ exports.register = async (req, res) => {
     res.status(201).json({ message: "OTP sent to email. Please verify." });
 
   } catch (err) {
-    console.error(err);
+    console.error("Register Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -142,7 +143,6 @@ exports.login = async (req, res) => {
   }
 };
 
-
 // 4. FORGOT PASSWORD (Send Reset Link)
 exports.forgotPassword = async (req, res) => {
   try {
@@ -156,12 +156,12 @@ exports.forgotPassword = async (req, res) => {
     // Generate secure token
     const resetToken = crypto.randomBytes(32).toString("hex");
     
-    // Hash it before saving to DB (Security Best Practice)
+    // Hash it before saving to DB
     user.reset_password_token = crypto.createHash("sha256").update(resetToken).digest("hex");
     user.reset_password_expires = Date.now() + 30 * 60 * 1000; // 30 minutes
     await user.save();
 
-    // Create Reset URL (Point to your Frontend)
+    // Create Reset URL
     const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
 
     // Prepare Email
@@ -195,7 +195,6 @@ exports.resetPassword = async (req, res) => {
     const user = await User.findOne({
       where: {
         reset_password_token: resetTokenHash,
-        // Check if expiration time is in the future
         reset_password_expires: { [require("sequelize").Op.gt]: Date.now() } 
       }
     });
