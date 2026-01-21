@@ -50,3 +50,27 @@ exports.deletePlan = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// NEW: Update Plan
+exports.updatePlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price, duration_months, description, features } = req.body;
+    
+    // Find and Update
+    const plan = await MembershipPlan.findByPk(id);
+    if (!plan) return res.status(404).json({ message: "Plan not found" });
+
+    await plan.update({
+      name, 
+      price, 
+      duration_months, 
+      description, 
+      features 
+    });
+
+    res.json({ message: "Plan Updated Successfully", plan });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -5,26 +5,38 @@ const User = require("../models/User");
 
 // --- HELPER: Activate or Renew Subscription ---
 const activateSubscription = async (user_id, plan_id) => {
-  const plan = await MembershipPlan.findByPk(plan_id);
-  if (!plan) throw new Error("Plan not found");
+  console.log(`[SUBSCRIPTION] Activating Plan ${plan_id} for User ${user_id}...`);
 
+  const plan = await MembershipPlan.findByPk(plan_id);
+  if (!plan) {
+    console.error("[SUBSCRIPTION] Plan not found!");
+    throw new Error("Plan not found");
+  }
+
+  // Calculate Dates
   const startDate = new Date();
   const endDate = new Date();
-  endDate.setMonth(endDate.getMonth() + plan.duration_months);
+  
+  // Ensure we add months correctly (Integer check)
+  const duration = parseInt(plan.duration_months);
+  endDate.setMonth(endDate.getMonth() + duration);
 
-  // Check if active subscription exists
+  console.log(`[SUBSCRIPTION] New End Date: ${endDate.toISOString().split('T')[0]}`);
+
+  // Check for ANY existing subscription (Active or Expired)
   const existingSub = await UserSubscription.findOne({ where: { user_id } });
 
   if (existingSub) {
-    // Extend existing
+    // Update the existing row
     await existingSub.update({
       plan_id,
       start_date: startDate,
       end_date: endDate,
       status: 'ACTIVE'
     });
+    console.log("[SUBSCRIPTION] Updated existing subscription.");
   } else {
-    // Create new
+    // Create a new row
     await UserSubscription.create({
       user_id,
       plan_id,
@@ -32,16 +44,17 @@ const activateSubscription = async (user_id, plan_id) => {
       end_date: endDate,
       status: 'ACTIVE'
     });
+    console.log("[SUBSCRIPTION] Created NEW subscription.");
   }
 };
 
-// 1. CREATE PAYMENT (Admin or Member)
+// 1. CREATE PAYMENT
 exports.createPayment = async (req, res) => {
   try {
     const { plan_id, amount, payment_method, reference_number } = req.body;
     let { user_id } = req.body;
 
-    // If request comes from a Member (via Token), use their ID
+    // Use Token ID if Member
     if (!user_id && req.user) {
       user_id = req.user.id;
     }
@@ -52,10 +65,7 @@ exports.createPayment = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Determine Status
-    // Admin CASH/TRANSFER = Verified Immediately
-    // Member CARD = Verified Immediately (Simulated)
-    // Member TRANSFER = PENDING (Needs Admin Approval)
+    // Status Logic
     let status = 'PENDING';
     if (req.user && req.user.role === 'ADMIN') status = 'VERIFIED';
     if (payment_method === 'CARD') status = 'COMPLETED';
@@ -70,7 +80,7 @@ exports.createPayment = async (req, res) => {
       reference_number
     });
 
-    // IF Verified/Completed -> ACTIVATE SUBSCRIPTION NOW
+    // If Instant Payment -> Activate Now
     if (status === 'VERIFIED' || status === 'COMPLETED') {
       await activateSubscription(user_id, plan_id);
     }
@@ -81,12 +91,12 @@ exports.createPayment = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Create Payment Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// 2. VERIFY PAYMENT (Admin Action)
+// 2. VERIFY PAYMENT (Admin)
 exports.verifyPayment = async (req, res) => {
   try {
     const { payment_id } = req.params;
@@ -98,8 +108,10 @@ exports.verifyPayment = async (req, res) => {
     if (action === 'APPROVE') {
       payment.status = 'VERIFIED';
       await payment.save();
-      // Activate Subscription upon Approval
+      
+      // Activate Subscription
       await activateSubscription(payment.user_id, payment.plan_id);
+      
       res.json({ message: "Payment Verified & Subscription Activated" });
     } else {
       payment.status = 'FAILED';
@@ -107,6 +119,7 @@ exports.verifyPayment = async (req, res) => {
       res.json({ message: "Payment Rejected" });
     }
   } catch (err) {
+    console.error("Verify Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -115,7 +128,6 @@ exports.verifyPayment = async (req, res) => {
 exports.getAllPayments = async (req, res) => {
   try {
     const where = {};
-    // If Member, only see own payments
     if (req.user.role === 'MEMBER') {
       where.user_id = req.user.id;
     }

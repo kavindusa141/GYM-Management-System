@@ -4,7 +4,8 @@ const {
   createPlan, 
   getAllPlans, 
   getPlanById, 
-  deletePlan 
+  deletePlan,
+  updatePlan 
 } = require("../controllers/membership.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
@@ -17,5 +18,6 @@ router.get("/:id", verifyToken, getPlanById);
 // Only Admins can manage the catalogue
 router.post("/", verifyToken, allowRoles("ADMIN"), createPlan);
 router.delete("/:id", verifyToken, allowRoles("ADMIN"), deletePlan);
+router.put("/:id", verifyToken, allowRoles("ADMIN"), updatePlan);
 
 module.exports = router;

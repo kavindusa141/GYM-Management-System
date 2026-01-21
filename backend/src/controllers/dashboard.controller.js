@@ -3,6 +3,7 @@ const Payment = require("../models/Payment");
 const GymClass = require("../models/GymClass");
 const Attendance = require("../models/Attendance");
 const UserSubscription = require("../models/UserSubscription"); // <--- NEW (3NF)
+const MembershipPlan = require("../models/MembershipPlan");
 const ClassBooking = require("../models/ClassBooking"); // Use if available, else optional
 const { Op } = require("sequelize");
 
@@ -117,51 +118,6 @@ exports.getAnalytics = async (req, res) => {
   }
 };
 
-// MEMBER: Personal Dashboard Stats
-exports.getMemberStats = async (req, res) => {
-  try {
-    const memberId = req.user.id;
-
-    // 1. Attendance Count
-    const attendanceCount = await Attendance.count({ where: { user_id: memberId } });
-
-    // 2. Subscription Status
-    const subscription = await UserSubscription.findOne({
-      where: { user_id: memberId, status: 'ACTIVE' },
-      order: [['end_date', 'DESC']]
-    });
-
-    // 3. Upcoming Bookings (If ClassBooking exists)
-    let upcomingClasses = 0;
-    try {
-        upcomingClasses = await ClassBooking.count({
-            where: { 
-                user_id: memberId,
-                status: 'CONFIRMED'
-            },
-            include: [{
-                model: GymClass,
-                where: { schedule_time: { [Op.gte]: new Date() } }
-            }]
-        });
-    } catch (e) {
-        // Fallback if ClassBooking table isn't fully set up yet
-        upcomingClasses = 0;
-    }
-
-    res.json({
-      attendanceCount,
-      upcomingClasses,
-      active: !!subscription, // True if subscription exists
-      planName: subscription ? "Active Member" : "No Active Plan",
-      expiryDate: subscription ? subscription.end_date : null
-    });
-
-  } catch (err) {
-    console.error("Member Stats Error:", err);
-    res.status(500).json({ error: err.message });
-  }
-};
 
 
 // MEMBER: Personal Dashboard Stats
@@ -172,24 +128,37 @@ exports.getMemberStats = async (req, res) => {
     // 1. Attendance Count
     const attendanceCount = await Attendance.count({ where: { user_id: memberId } });
 
-    // 2. Subscription Status (Fetch the latest ACTIVE one)
+    // 2. Subscription Status (Fixed Date Logic)
+    // Create a date string "YYYY-MM-DD" representing TODAY
+    const today = new Date().toISOString().split('T')[0];
+
     const subscription = await UserSubscription.findOne({
       where: { 
         user_id: memberId, 
         status: 'ACTIVE',
-        end_date: { [Op.gte]: new Date() } // Must not be expired
+        end_date: { [Op.gte]: today } // Compare Date vs Date (Ignore Time)
       },
-      include: [{ model: MembershipPlan, attributes: ['name'] }], // <--- Get Plan Name
+      include: [{ model: MembershipPlan, attributes: ['name'] }],
       order: [['end_date', 'DESC']]
     });
 
-    // 3. Calculate Days Remaining
+    // 3. Upcoming Bookings
+    let upcomingClasses = 0;
+    try {
+        upcomingClasses = await ClassBooking.count({
+            where: { user_id: memberId, status: 'CONFIRMED' },
+            include: [{ model: GymClass, where: { schedule_time: { [Op.gte]: new Date() } } }]
+        });
+    } catch (e) { upcomingClasses = 0; }
+
+    // 4. Calculate Days Remaining
     let daysLeft = 0;
     if (subscription) {
-      const today = new Date();
-      const end = new Date(subscription.end_date);
-      const diffTime = Math.abs(end - today);
+      const todayDate = new Date();
+      const endDate = new Date(subscription.end_date);
+      const diffTime = endDate - todayDate;
       daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      if (daysLeft < 0) daysLeft = 0; // Prevent negative numbers
     }
 
     res.json({
