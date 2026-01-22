@@ -13,7 +13,7 @@ router.get("/stats", verifyToken, allowRoles("ADMIN"), getDashboardStats);
 // ADMIN: Charts & Analytics
 router.get("/analytics", verifyToken, allowRoles("ADMIN"), getAnalytics);
 
-// MEMBER: Personal Dashboard Stats (Fixes the 500 Error Route)
+// MEMBER: Personal Dashboard Stats 
 router.get("/member-stats", verifyToken, allowRoles("MEMBER"), getMemberStats);
 
 module.exports = router;

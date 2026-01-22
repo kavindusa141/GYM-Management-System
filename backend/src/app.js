@@ -53,6 +53,7 @@ app.use("/api/classes", classRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", dashboardRoutes);
+app.use("/api/member", dashboardRoutes);
 app.use("/api/workouts", workoutRoutes);
 app.use("/api/equipment", equipmentRoutes);
 app.use("/api/bookings", bookingRoutes);

@@ -103,54 +103,73 @@ exports.getAnalytics = async (req, res) => {
 
 
 
-// MEMBER: Personal Dashboard Stats
+/* ================================
+   MEMBER: Personal Dashboard Stats
+================================ */
 exports.getMemberStats = async (req, res) => {
   try {
-    const memberId = req.user.id;
+    // Get user ID from token/session
+    const memberId = req.user.user_id || req.user.id;
 
-    // 1. Attendance Count
-    const attendanceCount = await Attendance.count({ where: { user_id: memberId } });
-
-    // 2. Subscription Status (Fixed Date Logic)
-    // Create a date string "YYYY-MM-DD" representing TODAY
-    const today = new Date().toISOString().split('T')[0];
-
-    const subscription = await UserSubscription.findOne({
-      where: { 
-        user_id: memberId, 
-        status: 'ACTIVE',
-        end_date: { [Op.gte]: today } // Compare Date vs Date (Ignore Time)
-      },
-      include: [{ model: MembershipPlan, attributes: ['name'] }],
-      order: [['end_date', 'DESC']]
+    // 1️⃣ Attendance Count
+    const attendanceCount = await Attendance.count({
+      where: { member_id: memberId }
     });
 
-    // 3. Upcoming Bookings
-    let upcomingClasses = 0;
-    try {
-        upcomingClasses = await ClassBooking.count({
-            where: { user_id: memberId, status: 'CONFIRMED' },
-            include: [{ model: GymClass, where: { schedule_time: { [Op.gte]: new Date() } } }]
-        });
-    } catch (e) { upcomingClasses = 0; }
+    // 2️⃣ Today's date for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // 4. Calculate Days Remaining
-    let daysLeft = 0;
-    if (subscription) {
-      const todayDate = new Date();
-      const endDate = new Date(subscription.end_date);
-      const diffTime = endDate - todayDate;
-      daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-      if (daysLeft < 0) daysLeft = 0; // Prevent negative numbers
+    // 3️⃣ Fetch only the current ACTIVE subscription
+    const activeSubscription = await UserSubscription.findOne({
+      where: {
+        user_id: memberId,
+        status: "ACTIVE",
+        end_date: { [Op.gte]: today } // ensure still valid
+      },
+      include: [{ model: MembershipPlan, attributes: ["name"] }],
+      order: [["end_date", "DESC"]]
+    });
+
+    // 4️⃣ Auto-expire subscriptions if needed
+    if (activeSubscription) {
+      const endDate = new Date(activeSubscription.end_date);
+      endDate.setHours(0, 0, 0, 0);
+      if (endDate < today && activeSubscription.status === "ACTIVE") {
+        await activeSubscription.update({ status: "EXPIRED" });
+      }
     }
 
+    // 5️⃣ Upcoming classes count
+    let upcomingClasses = 0;
+    try {
+      upcomingClasses = await ClassBooking.count({
+        where: { user_id: memberId, status: "CONFIRMED" }
+      });
+    } catch (e) {
+      upcomingClasses = 0;
+    }
+
+    // 6️⃣ Days left calculation
+    let daysLeft = 0;
+    if (activeSubscription) {
+      const endDate = new Date(activeSubscription.end_date);
+      endDate.setHours(0, 0, 0, 0);
+      const diffTime = endDate.getTime() - today.getTime();
+      daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    // 7️⃣ Return dashboard data
     res.json({
       attendanceCount,
-      active: !!subscription, 
-      planName: subscription ? subscription.MembershipPlan.name : "No Active Plan",
-      expiryDate: subscription ? subscription.end_date : null,
-      daysLeft: daysLeft,
-      startDate: subscription ? subscription.start_date : null
+      active: !!activeSubscription,
+      planName: activeSubscription
+        ? activeSubscription.MembershipPlan.name
+        : "No Active Plan",
+      startDate: activeSubscription ? activeSubscription.start_date : null,
+      expiryDate: activeSubscription ? activeSubscription.end_date : null,
+      daysLeft,
+      upcomingClasses
     });
 
   } catch (err) {
