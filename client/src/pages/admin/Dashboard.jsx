@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import LiveClock from '../../components/Shared/LiveClock';
 import { 
   Users, DollarSign, Activity, Calendar, TrendingUp, UserPlus 
 } from 'lucide-react';
@@ -46,7 +47,9 @@ export default function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-gray-500">Welcome back! Here is your gym's performance overview.</p>
+        
       </div>
+      <div className="ml-auto"><LiveClock /></div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -93,7 +93,7 @@ export default function Receipt() {
         
         {/* Header */}
         <div className="text-center border-b-4 border-blue-600 pb-6 mb-6">
-          <h1 className="text-3xl font-black text-blue-600">🏋️ ROYAL FITNESS</h1>
+          <h1 className="text-3xl font-black text-blue-600">🏋️ ROYAL FITNESS KINGDOM</h1>
           <p className="text-sm text-gray-500 mt-1">Premium Gym & Fitness Center</p>
         </div>
 

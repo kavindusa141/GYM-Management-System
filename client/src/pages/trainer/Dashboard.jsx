@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { Plus, Dumbbell, User, Calendar } from 'lucide-react';
+import LiveClock from '../../components/Shared/LiveClock';
 
 export default function TrainerDashboard() {
   const [plans, setPlans] = useState([]);
@@ -25,6 +26,7 @@ export default function TrainerDashboard() {
     <div className="space-y-8 animate-fade-in">
       <div className="flex justify-between items-center">
         <div><h1 className="text-2xl font-bold text-gray-900">Trainer Dashboard</h1><p className="text-gray-500">Manage your clients.</p></div>
+        <LiveClock/>
         <Link to="/trainer/create-plan" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-blue-700">
           <Plus size={20} /> Assign New Plan
         </Link>

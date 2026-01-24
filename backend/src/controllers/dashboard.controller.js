@@ -6,15 +6,16 @@ const UserSubscription = require("../models/UserSubscription"); // <--- NEW (3NF
 const MembershipPlan = require("../models/MembershipPlan");
 const ClassBooking = require("../models/ClassBooking"); // Use if available, else optional
 const { Op } = require("sequelize");
+const sequelize = require("../config/db");
 
 // ADMIN: Get Live Business Stats
 exports.getDashboardStats = async (req, res) => {
   try {
-    // 1. Total Members (Registered Accounts)
-    const totalMembers = await User.count({ where: { role: "MEMBER" } });
+    // 1. Total Members (Registered Accounts) - Exclude deleted members
+    const totalMembers = await User.count({ where: { role: "MEMBER", is_deleted: false } });
 
-    // 2. Total Trainers
-    const totalTrainers = await User.count({ where: { role: "TRAINER" } });
+    // 2. Total Trainers - Exclude deleted trainers
+    const totalTrainers = await User.count({ where: { role: "TRAINER", is_deleted: false } });
 
     // 3. Total Revenue (All verified/completed payments)
     const totalRevenue = await Payment.sum("amount", {
@@ -60,6 +61,7 @@ exports.getAnalytics = async (req, res) => {
       attributes: ['created_at'],
       where: {
         role: 'MEMBER',
+        is_deleted: false,
         created_at: { [Op.gte]: sixMonthsAgo }
       },
       order: [['created_at', 'ASC']]
@@ -116,6 +118,23 @@ exports.getMemberStats = async (req, res) => {
       where: { member_id: memberId }
     });
 
+    // --- NEW: Calculate Average Duration ---
+    // We only average sessions where 'duration' is not null (meaning they checked out)
+    const durationStats = await Attendance.findAll({
+      where: { 
+        member_id: memberId,
+        duration: { [Op.ne]: null } // Only completed sessions
+      },
+      attributes: [
+        [sequelize.fn('AVG', sequelize.col('duration')), 'avgDuration']
+      ],
+      raw: true
+    });
+
+    const avgMinutes = durationStats[0].avgDuration 
+      ? Math.round(parseFloat(durationStats[0].avgDuration)) 
+      : 0;
+
     // 2️⃣ Today's date for comparison
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -162,6 +181,7 @@ exports.getMemberStats = async (req, res) => {
     // 7️⃣ Return dashboard data
     res.json({
       attendanceCount,
+      avgMinutes,
       active: !!activeSubscription,
       planName: activeSubscription
         ? activeSubscription.MembershipPlan.name

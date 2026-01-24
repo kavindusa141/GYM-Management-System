@@ -60,11 +60,42 @@ const User = sequelize.define("User", {
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
+  },
+
+  // Soft Delete Fields
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  deleted_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  deletion_reason: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 
 }, {
   tableName: "users",
-  timestamps: false
+  timestamps: false,
+  underscored: true,
+
+  defaultScope: {
+    where: {
+      is_deleted: false
+    }
+  },
+
+  scopes: {
+    withDeleted: {
+      where: {}
+    },
+    onlyDeleted: {
+      where: { is_deleted: true }
+    }
+  }
 });
 
 module.exports = User;

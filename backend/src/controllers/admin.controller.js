@@ -1,22 +1,27 @@
 const User = require("../models/User");
 const MemberProfile = require("../models/MemberProfile");
 const bcrypt = require("bcrypt");
+const { Op } = require("sequelize");
 
-// 1. Get All Members
+// 1. Get All Members (Only Active/Non-Deleted)
 exports.getAllMembers = async (req, res) => {
   try {
     const members = await User.findAll({
-      where: { role: 'MEMBER' },
-      // Included 'member_code' so IDs show up nicely
-      // Removed 'created_at' to prevent database errors if column is missing
+      where: { 
+        role: 'MEMBER',
+        [Op.or]: [
+          { is_deleted: false },
+          { is_deleted: null }
+        ]
+      },
       attributes: ['user_id', 'member_code', 'name', 'email', 'phone', 'status', 'created_at'],
       include: [
         { 
           model: MemberProfile, 
-          attributes: ['profile_id'] // Check if they have set up their profile
+          attributes: ['profile_id'] 
         }
       ],
-      order: [['user_id', 'DESC']] // Newest members first
+      order: [['user_id', 'DESC']]
     });
     res.json(members);
   } catch (err) {
@@ -49,7 +54,6 @@ exports.addMember = async (req, res) => {
       status: true
     });
 
-    // Generate RFK-M-ID
     const customId = `RFK-M-${newUser.user_id}`;
     await newUser.update({ member_code: customId });
 
@@ -60,44 +64,44 @@ exports.addMember = async (req, res) => {
   }
 };
 
-// 3. Delete User
-exports.deleteUser = async (req, res) => {
+// 3. Soft Delete Member
+exports.deleteMember = async (req, res) => {
   try {
     const { id } = req.params;
     
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "Member not found" });
     }
 
-    await user.destroy();
-    res.json({ message: "User deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    if (user.role !== 'MEMBER') {
+      return res.status(400).json({ message: "Can only delete members, not other roles" });
+    }
 
-// 4. Get All Trainers (Needed for Dropdowns in Class Management)
-exports.getAllTrainers = async (req, res) => {
-  try {
-    const trainers = await User.findAll({
-      where: { role: 'TRAINER' },
-      attributes: ['user_id', 'name', 'email']
+    await user.update({
+      is_deleted: true,
+      deleted_at: new Date(),
+      deletion_reason: 'Deleted by admin',
+      status: false
     });
-    res.json(trainers);
+
+    res.json({ message: "Member deleted successfully." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// 5. Get All Employees (Staff & Trainers)
+// 4. Get Employees (Staff & Trainers)
 exports.getEmployees = async (req, res) => {
   try {
     const employees = await User.findAll({
       where: { 
-        role: ["STAFF", "TRAINER"] 
+        role: ["STAFF", "TRAINER"],
+        [Op.or]: [
+          { is_deleted: false },
+          { is_deleted: null }
+        ]
       },
-      // FIXED: Added 'member_code' and removed 'created_at' to prevent 500 errors
       attributes: ['user_id', 'member_code', 'name', 'email', 'phone', 'role', 'status']
     });
     res.json(employees);
@@ -106,7 +110,7 @@ exports.getEmployees = async (req, res) => {
   }
 };
 
-// 6. Create Employee (Staff or Trainer)
+// 5. Create Employee
 exports.createEmployee = async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
@@ -125,9 +129,6 @@ exports.createEmployee = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // --- FIX APPLIED HERE ---
-    // Previously: await User.create(...) without assigning to 'newUser'
-    // Fixed: const newUser = await User.create(...)
     const newUser = await User.create({
       name,
       email,
@@ -137,11 +138,9 @@ exports.createEmployee = async (req, res) => {
       status: true 
     });
 
-    // Generate Custom ID
     const prefix = role === "TRAINER" ? "RFK-T" : "RFK-S";
     const customId = `${prefix}-${newUser.user_id}`;
 
-    // Update with the new code
     await newUser.update({ member_code: customId });
 
     res.status(201).json({ message: `${role} created successfully`, member_code: customId });
@@ -151,14 +150,113 @@ exports.createEmployee = async (req, res) => {
   }
 };
 
-// NEW: Get All Trainers (for Dropdowns)
+// 6. Get All Trainers (Dropdowns)
 exports.getAllTrainers = async (req, res) => {
   try {
     const trainers = await User.findAll({
-      where: { role: 'TRAINER' },
-      attributes: ['user_id', 'name', 'member_code'] // We only need these for the list
+      where: { 
+        role: 'TRAINER',
+        [Op.or]: [
+          { is_deleted: false },
+          { is_deleted: null }
+        ]
+      },
+      attributes: ['user_id', 'name', 'member_code']
     });
     res.json(trainers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 7. NEW: Soft Delete Employee (Staff/Trainer)
+// This fixes the missing functionality for deleting Staff/Trainers
+exports.deleteEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Ensure we are deleting the correct roles
+    if (!["STAFF", "TRAINER"].includes(user.role)) {
+      return res.status(400).json({ message: "This endpoint is for deleting Staff or Trainers only." });
+    }
+
+    // Soft Delete logic
+    await user.update({
+      is_deleted: true,
+      deleted_at: new Date(),
+      deletion_reason: 'Deleted by admin',
+      status: false
+    });
+
+    res.json({ message: "Employee removed successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// --- Reporting / Deleted Members Getters ---
+
+exports.getDeletedMembers = async (req, res) => {
+  try {
+    const deletedMembers = await User.findAll({
+      where: { role: 'MEMBER', is_deleted: true },
+      include: [{ model: MemberProfile, required: false }],
+      order: [['deleted_at', 'DESC']]
+    });
+    res.json(deletedMembers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getDeletedMemberPaymentHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const Payment = require("../models/Payment");
+    const MembershipPlan = require("../models/MembershipPlan");
+
+    const paymentHistory = await Payment.findAll({
+      where: { user_id: id },
+      include: [{ model: MembershipPlan }],
+      order: [['transaction_date', 'DESC']]
+    });
+    res.json({ payment_history: paymentHistory });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getDeletedMemberSubscriptionHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const UserSubscription = require("../models/UserSubscription");
+    const MembershipPlan = require("../models/MembershipPlan");
+
+    const subscriptionHistory = await UserSubscription.findAll({
+      where: { user_id: id },
+      include: [{ model: MembershipPlan }],
+      order: [['start_date', 'DESC']]
+    });
+    res.json({ subscription_history: subscriptionHistory });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getDeletedMemberAttendanceHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const Attendance = require("../models/Attendance");
+    const attendanceHistory = await Attendance.findAll({
+      where: { member_id: id },
+      order: [['attendance_date', 'DESC']]
+    });
+    res.json({ attendance_history: attendanceHistory });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { Search, Trash2, UserPlus, X, Phone, Mail, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Trash2, UserPlus, X, Phone, Mail, CheckCircle, XCircle, Users } from 'lucide-react';
 
 export default function MemberManagement() {
   // --- STATE MANAGEMENT ---
@@ -53,7 +53,7 @@ export default function MemberManagement() {
     if(!window.confirm("Are you sure you want to delete this member? This cannot be undone.")) return;
     
     try {
-      await api.delete(`/admin/users/${id}`);
+      await api.delete(`/admin/members/${id}`);
       toast.success("Member deleted");
       // Remove from local state immediately (UI update)
       setMembers(members.filter(m => m.user_id !== id));
@@ -65,16 +65,26 @@ export default function MemberManagement() {
   // 3. Filter Members based on Search Term
   const filteredMembers = members.filter(member => 
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase())
+    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.member_code && member.member_code.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* --- HEADER SECTION --- */}
+      {/* --- HEADER SECTION (UPDATED) --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Member Management</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Member Management</h1>
+            {/* TOTAL COUNT BADGE */}
+            {!loading && (
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">
+                <Users size={14} />
+                {members.length} Total Members
+              </span>
+            )}
+          </div>
           <p className="text-gray-500">View, search, and manage your gym members.</p>
         </div>
         <button 
@@ -90,7 +100,7 @@ export default function MemberManagement() {
         <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
         <input 
           type="text" 
-          placeholder="Search members by name or email..." 
+          placeholder="Search members by name, email, member code(RFK-M...)..." 
           className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}

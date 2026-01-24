@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
-  CheckCircle, Smartphone, User, Clock, QrCode
+  CheckCircle, Smartphone, User, Clock, QrCode, LogOut, Timer
 } from 'lucide-react';
 import QRCode from "react-qr-code"; 
 
@@ -110,14 +110,14 @@ export default function Attendance() {
                   disabled={loading}
                   className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95"
                 >
-                  {loading ? "Processing..." : "Mark Present"}
+                  {loading ? "Processing..." : "Mark Present / Out"}
                 </button>
               </form>
             </div>
           ) : (
             // MODE B: QR KIOSK DISPLAY
             <div className="bg-white p-8 rounded-2xl shadow-xl border-2 border-purple-100 flex flex-col items-center text-center sticky top-6">
-              <h3 className="text-xl font-black text-gray-900 mb-2">Scan to Check-In</h3>
+              <h3 className="text-xl font-black text-gray-900 mb-2">Scan to Check-In/Out</h3>
               <p className="text-sm text-gray-500 mb-6">Display this screen to members.</p>
               
               <div className="p-4 bg-white border-4 border-gray-900 rounded-xl shadow-lg">
@@ -148,7 +148,7 @@ export default function Attendance() {
                 <Clock className="w-5 h-5 text-gray-500"/> Today's Activity
               </h3>
               <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-                {todayRecords.length} Check-ins
+                {todayRecords.length} Records
               </span>
             </div>
 
@@ -156,14 +156,15 @@ export default function Attendance() {
               {todayRecords.length === 0 ? (
                 <div className="p-10 text-center text-gray-500 flex flex-col items-center justify-center h-64">
                    <Clock className="w-10 h-10 text-gray-200 mb-2"/>
-                   <p>No check-ins yet today.</p>
+                   <p>No activity yet today.</p>
                 </div>
               ) : (
                 todayRecords.map((record) => (
                   <div key={record.attendance_id} className="p-4 flex items-center justify-between hover:bg-blue-50 transition-colors animate-fade-in">
                     <div className="flex items-center gap-4">
                       {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg 
+                        ${record.status === 'CHECKED_OUT' ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-600'}`}>
                         {record.User?.name?.charAt(0) || '?'}
                       </div>
                       
@@ -176,14 +177,36 @@ export default function Attendance() {
                       </div>
                     </div>
 
-                    {/* Time Stamp - FIXED LINE BELOW */}
+                    {/* Time Stamp & Status */}
                     <div className="text-right">
-                      <p className="text-lg font-bold text-gray-900 font-mono tracking-tight">
-                        {(record.check_in || '').slice(0, 5)} 
-                      </p>
-                      <p className="text-xs text-green-600 font-bold flex items-center justify-end gap-1">
-                        <CheckCircle className="w-3 h-3" /> Present
-                      </p>
+                      <div className="flex flex-col items-end">
+                        {/* Check-In Time */}
+                        <p className="text-lg font-bold text-gray-900 font-mono tracking-tight leading-none">
+                          {record.check_in?.slice(0, 5)} 
+                          {record.check_out && <span className="text-gray-400 mx-1">➜</span>}
+                          <span className="text-gray-500">{record.check_out?.slice(0, 5)}</span>
+                        </p>
+                        
+                        {/* Status Badge */}
+                        <div className="flex items-center gap-2 mt-1">
+                          {record.status === 'CHECKED_OUT' ? (
+                            <>
+                              <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded flex items-center gap-1">
+                                <LogOut className="w-3 h-3" /> Checked Out
+                              </span>
+                              {record.duration && (
+                                <span className="text-xs font-bold text-blue-600 flex items-center gap-1">
+                                  <Timer className="w-3 h-3" /> {record.duration}m
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded flex items-center gap-1 border border-green-100">
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> In Gym
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))

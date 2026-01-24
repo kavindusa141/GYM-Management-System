@@ -2,8 +2,8 @@ const { Op } = require("sequelize");
 const sequelize = require("../config/db");
 const Payment = require("../models/Payment");
 const Attendance = require("../models/Attendance");
-const User = require("../models/User");
 const MembershipPlan = require("../models/MembershipPlan");
+const UserSubscription = require("../models/UserSubscription");
 
 // Helper to format dates YYYY-MM
 const getMonthYear = (dateStr) => {
@@ -83,35 +83,41 @@ exports.getReportsData = async (req, res) => {
     // ==========================================
     // 3. MEMBERSHIP REPORT (Count Plans)
     // ==========================================
+
     try {
-      // Fetch all Members with their plan_id
-      const members = await User.findAll({
-        where: { role: 'MEMBER' },
-        attributes: ['plan_id'], // Ensure your User table has 'plan_id'
-        raw: true
-      });
+  // Get all memberships
+  const memberships = await UserMembership.findAll({
+    where: { status: 'ACTIVE' },
+    attributes: ['plan_id'],
+    raw: true
+  });
 
-      // Fetch Plan Names manually to avoid Join crashes
-      const plans = await MembershipPlan.findAll({ raw: true });
-      const planLookup = {};
-      plans.forEach(p => planLookup[p.plan_id] = p.name);
+  // Get plan names
+  const plans = await MembershipPlan.findAll({ raw: true });
+  const planLookup = {};
+  plans.forEach(p => {
+    planLookup[p.plan_id] = p.name;
+  });
 
-      // Count Logic
-      const memMap = {};
-      members.forEach(m => {
-        const planName = planLookup[m.plan_id] || "Unknown Plan";
-        if (!memMap[planName]) memMap[planName] = 0;
-        memMap[planName] += 1;
-      });
+  // Count members per plan
+  const memMap = {};
+  memberships.forEach(m => {
+    const planName = planLookup[m.plan_id] || "Unknown Plan";
+    if (!memMap[planName]) memMap[planName] = 0;
+    memMap[planName] += 1;
+  });
 
-      responseData.membership = Object.keys(memMap).map(name => ({
-        plan_name: name,
-        member_count: memMap[name]
-      }));
+  responseData.membership = Object.keys(memMap).map(name => ({
+    plan_name: name,
+    member_count: memMap[name]
+  }));
 
-    } catch (memError) {
-      console.error("Membership Report Error:", memError.message);
-    }
+} catch (memError) {
+  console.error("Membership Report Error:", memError.message);
+}
+
+
+
 
     // Send whatever data we managed to collect
     res.json(responseData);

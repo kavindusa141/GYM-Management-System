@@ -113,7 +113,12 @@ exports.login = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if account is verified
+    // Check if user account is deleted (if column exists)
+    if (user.is_deleted === true) {
+      return res.status(403).json({ message: "This account has been deleted and cannot access the system." });
+    }
+
+    // Check if account is verifieda
     if (!user.status) {
       return res.status(403).json({ message: "Please verify your email before logging in." });
     }
@@ -139,6 +144,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ error: err.message });
   }
 };

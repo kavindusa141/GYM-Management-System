@@ -29,7 +29,7 @@ UserSubscription.belongsTo(MembershipPlan, { foreignKey: "plan_id" });
 
 // User ↔ Payments
 User.hasMany(Payment, { foreignKey: "user_id" });
-Payment.belongsTo(User, { foreignKey: "user_id" });
+Payment.belongsTo(User, { foreignKey: "user_id", onDelete: 'RESTRICT' });
 
 // Payment ↔ Plan
 Payment.belongsTo(MembershipPlan, { foreignKey: "plan_id" });

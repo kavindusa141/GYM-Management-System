@@ -2,8 +2,17 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api'; // Import API helper
-import { Calendar, User, Activity, Clock, AlertCircle, CheckCircle, Zap } from 'lucide-react';
+import LiveClock from '../../components/Shared/LiveClock';
+import { Calendar, User, Activity, Clock, AlertCircle, CheckCircle, Zap, Timer } from 'lucide-react';
 import { formatCurrency } from '../../utils/currencyFormatter';
+
+// Helper to format minutes into "1h 20m" or "45m"
+const formatDuration = (mins) => {
+  if (!mins) return "0m";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+};
 
 export default function MemberDashboard() {
   const { user } = useAuth();
@@ -30,7 +39,8 @@ export default function MemberDashboard() {
           expiryDate: null,
           daysLeft: 0,
           startDate: null,
-          upcomingClasses: 0
+          upcomingClasses: 0,
+          avgMinutes: 0 // Added default for error case
         });
       })
       .finally(() => setLoading(false));
@@ -50,15 +60,18 @@ export default function MemberDashboard() {
           <h1 className="text-3xl font-bold text-gray-800">Hello, {user?.name}</h1>
           <p className="text-gray-600">Welcome to your fitness dashboard.</p>
         </div>
+        <LiveClock />
         <Link to="/member/profile-setup" className="px-4 py-2 text-sm text-blue-600 bg-blue-100 rounded hover:bg-blue-200">
           Edit Profile
         </Link>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      {/* UPDATED GRID: Switched to 4 columns on large screens to fit the new card */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         
         {/* 1. Active Membership Package Card - PROMINENT */}
-        <div className={`p-6 rounded-xl border-2 shadow-lg col-span-1 md:col-span-3 transition-all ${
+        {/* UPDATED SPAN: Spans all columns (2 on md, 4 on lg) */}
+        <div className={`p-6 rounded-xl border-2 shadow-lg col-span-1 md:col-span-2 lg:col-span-4 transition-all ${
           stats?.active 
             ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
             : 'bg-gradient-to-r from-red-50 to-orange-50 border-red-300'
@@ -166,7 +179,7 @@ export default function MemberDashboard() {
           </p>
         </div>
 
-        {/* 2. Book A Class Card */}
+        {/* 3. Book A Class Card */}
         <Link to="/member/schedule" className="p-6 transition bg-white shadow rounded-xl hover:shadow-md group border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-700">Upcoming Classes</h3>
@@ -176,7 +189,17 @@ export default function MemberDashboard() {
           <p className="text-sm text-gray-500">Booked sessions</p>
         </Link>
 
-        {/* 3. Attendance / Streak Card */}
+        {/* 4. NEW: Average Duration Card */}
+        <div className="p-6 bg-white rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold text-gray-700">Avg Duration</h3>
+            <Timer className="text-blue-500"/>
+          </div>
+          <p className="text-2xl font-bold text-gray-900">{formatDuration(stats?.avgMinutes)}</p>
+          <p className="text-xs text-gray-500 mt-1">Per session</p>
+        </div>
+
+        {/* 5. Attendance / Streak Card */}
         <div className="p-6 bg-white shadow rounded-xl border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-700">Total Visits</h3>
