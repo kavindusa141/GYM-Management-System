@@ -6,6 +6,8 @@ import {
   Search, ChevronDown, Filter, X, XCircle
 } from 'lucide-react';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 export default function Billing() {
   const [payments, setPayments] = useState([]);
   const [members, setMembers] = useState([]);
@@ -399,7 +401,7 @@ export default function Billing() {
                         </div>
                         
                         {pay.slip_url && (
-                          <a href={`http://localhost:5000${pay.slip_url}`} target="_blank" rel="noreferrer" 
+                          <a href={`${BACKEND_URL}${pay.slip_url}`} target="_blank" rel="noreferrer" 
                              className="text-xs text-blue-600 font-bold underline mt-2 block hover:text-blue-800 flex items-center gap-1">
                              <FileText className="w-3 h-3"/> View Bank Slip
                           </a>
@@ -421,9 +423,18 @@ export default function Billing() {
                         
                         {/* STATUS BADGES & ACTIONS */}
                         {(pay.status === 'VERIFIED' || pay.status === 'COMPLETED' || pay.status === 'SUCCESS') ? (
-                          <span className="flex items-center gap-1 text-xs text-green-600 font-bold mt-1">
-                             <CheckCircle className="w-3 h-3" /> Verified
-                          </span>
+                          <div className="flex flex-col gap-2">
+                            <span className="flex items-center gap-1 text-xs text-green-600 font-bold mt-1">
+                               <CheckCircle className="w-3 h-3" /> Verified
+                            </span>
+                            <a
+                               href={`/receipt/${pay.payment_id}`}
+                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+>
+                              <Receipt className="w-3 h-3" />
+                                   View Receipt
+                                </a>
+                          </div>
                         ) : pay.status === 'FAILED' ? (
                            <span className="flex items-center gap-1 text-xs text-red-600 font-bold mt-1">
                              <XCircle className="w-3 h-3" /> Rejected

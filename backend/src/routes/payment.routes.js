@@ -3,30 +3,74 @@ const router = express.Router();
 const { 
   createPayment, 
   getAllPayments, 
-  verifyPayment 
+  verifyPayment,
+  getPaymentReceipt,
+  downloadReceiptPDF
 } = require("../controllers/payment.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
 // --- MULTER SETUP ---
 const multer = require("multer");
 const path = require("path");
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, "slip-" + Date.now() + path.extname(file.originalname))
+  filename: (req, file, cb) =>
+    cb(null, "slip-" + Date.now() + path.extname(file.originalname))
 });
-const upload = multer({ storage: storage });
 
-// --- ROUTES ---
+const upload = multer({ storage });
 
-// 1. Admin Pay (Cash) AND Member Pay (Card/Transfer)
-// This single route handles both because the Controller logic checks the Role
-router.post("/admin-pay", verifyToken, allowRoles("ADMIN"), upload.single("slip_image"), createPayment);
-router.post("/pay", verifyToken, allowRoles("MEMBER"), upload.single("slip_image"), createPayment);
+// ===============================
+// ROUTES
+// ===============================
 
-// 2. Verify Payment
-router.post("/verify/:payment_id", verifyToken, allowRoles("ADMIN"), verifyPayment);
+// ✅ MEMBER uploads bank slip
+router.post(
+  "/pay",
+  verifyToken,
+  allowRoles("MEMBER"),
+  upload.single("slip_image"),
+  createPayment
+);
 
-// 3. Get History
-router.get("/", verifyToken, getAllPayments);
+// ✅ ADMIN creates payment (cash OR transfer)
+router.post(
+  "/admin-pay",
+  verifyToken,
+  allowRoles("ADMIN"),
+  upload.single("slip_image"),
+  createPayment
+);
+
+// ✅ ADMIN verifies payment
+router.post(
+  "/verify/:payment_id",
+  verifyToken,
+  allowRoles("ADMIN"),
+  verifyPayment
+);
+
+// ✅ BOTH roles can view history
+router.get(
+  "/",
+  verifyToken,
+  getAllPayments
+);
+
+
+
+router.get(
+  "/receipt/:payment_id",
+  verifyToken,
+  getPaymentReceipt
+);
+
+// ✅ DOWNLOAD RECEIPT AS PDF
+router.get(
+  "/receipt/:payment_id/download-pdf",
+  verifyToken,
+  downloadReceiptPDF
+);
 
 module.exports = router;

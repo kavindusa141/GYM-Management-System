@@ -19,6 +19,7 @@ import MemberDashboard from './pages/member/Dashboard';
 import MemberProfileSetup from './pages/member/ProfileSetup';
 import WorkoutPlans from './pages/member/WorkoutPlans';
 import Payment from './pages/member/Payment';
+import Receipt from './pages/member/Receipt';
 import Schedule from './pages/member/Schedule';
 import ScanAttendance from './pages/member/ScanAttendance';
 import History from './pages/member/History';
@@ -66,6 +67,12 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
       
+      {/* Receipt Route - Shared for both ADMIN and MEMBER */}
+      <Route path="/receipt/:payment_id" element={
+        <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER']}>
+          <Receipt />
+        </ProtectedRoute>
+      } />
 
       {/* --- MEMBER PORTAL --- */}
       <Route path="/member" element={

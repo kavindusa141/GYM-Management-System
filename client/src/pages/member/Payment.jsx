@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { CreditCard, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { CreditCard, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext'; // ✅ Needed to identify logged-in member
+import { useNavigate } from 'react-router-dom';
 
 export default function MemberPayment() {
   const { user } = useAuth(); // Logged-in user
+  const navigate = useNavigate();
 
   // Membership plans
   const [plans, setPlans] = useState([]);
@@ -80,7 +82,9 @@ export default function MemberPayment() {
 
     try {
       // STEP 3: Submit payment
-      await api.post('/payments/pay', payload);
+      await api.post('/payments/pay', payload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
       toast.success(
         method === 'CARD'
@@ -242,49 +246,66 @@ export default function MemberPayment() {
             No payment history found.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
-                <tr>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Plan</th>
-                  <th className="px-6 py-4">Amount</th>
-                  <th className="px-6 py-4">Method</th>
-                  <th className="px-6 py-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {history.map(pay => (
-                  <tr key={pay.payment_id}>
-                    <td className="px-6 py-4">
-                      {new Date(pay.transaction_date || pay.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 font-bold">
-                      {pay.MembershipPlan?.name || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4">Rs. {pay.amount}</td>
-                    <td className="px-6 py-4">{pay.payment_method}</td>
-                    <td className="px-6 py-4">
-                      <span className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${
-                        pay.status === 'VERIFIED' || pay.status === 'COMPLETED'
-                          ? 'bg-green-100 text-green-700'
-                          : pay.status === 'PENDING'
-                          ? 'bg-orange-100 text-orange-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}>
-                        {pay.status === 'VERIFIED' || pay.status === 'COMPLETED'
-                          ? <CheckCircle size={14} />
-                          : pay.status === 'PENDING'
-                          ? <Clock size={14} />
-                          : <XCircle size={14} />
-                        }
-                        {pay.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="divide-y divide-gray-100">
+            {history.map(pay => (
+              <div key={pay.payment_id} className="p-5 hover:bg-gray-50 transition-colors flex justify-between items-start">
+                
+                <div className="flex gap-4 flex-1">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mt-0.5 shrink-0
+                    ${pay.status === 'VERIFIED' || pay.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 
+                      pay.status === 'PENDING' ? 'bg-orange-100 text-orange-600' :
+                      'bg-red-100 text-red-600'}`}>
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-900">{pay.MembershipPlan?.name || 'Unknown Plan'}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(pay.transaction_date || pay.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </p>
+                    {pay.payment_method === 'TRANSFER' && (
+                      <p className="text-xs text-gray-400 mt-1">Method: Bank Transfer</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-right flex flex-col items-end gap-2">
+                  <p className="text-lg font-bold text-gray-900">Rs. {pay.amount.toLocaleString()}</p>
+                  
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold
+                    ${pay.status === 'VERIFIED' || pay.status === 'COMPLETED'
+                      ? 'bg-green-100 text-green-700'
+                      : pay.status === 'PENDING'
+                      ? 'bg-orange-100 text-orange-700'
+                      : 'bg-red-100 text-red-700'
+                    }`}>
+                    {pay.status === 'VERIFIED' || pay.status === 'COMPLETED'
+                      ? <CheckCircle size={14} />
+                      : pay.status === 'PENDING'
+                      ? <Clock size={14} />
+                      : <XCircle size={14} />
+                    }
+                    {pay.status}
+                  </span>
+
+                  {/* RECEIPT LINK FOR VERIFIED/COMPLETED PAYMENTS */}
+                  {(pay.status === 'VERIFIED' || pay.status === 'COMPLETED' || pay.status === 'SUCCESS') && (
+                    <button
+                      onClick={() => navigate(`/receipt/${pay.payment_id}`)}
+                      className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                    >
+                      <FileText className="w-3 h-3" />
+                      View Receipt
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            ))}
           </div>
         )}
       </div>
