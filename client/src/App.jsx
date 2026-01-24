@@ -16,6 +16,7 @@ import TrainerLayout from './components/Layouts/TrainerLayout';
 
 // Member Pages
 import MemberDashboard from './pages/member/Dashboard';
+import MemberProfile from './pages/member/Profile';
 import MemberProfileSetup from './pages/member/ProfileSetup';
 import WorkoutPlans from './pages/member/WorkoutPlans';
 import Payment from './pages/member/Payment';
@@ -23,6 +24,8 @@ import Receipt from './pages/member/Receipt';
 import Schedule from './pages/member/Schedule';
 import ScanAttendance from './pages/member/ScanAttendance';
 import History from './pages/member/History';
+import MemberSettings from './pages/member/Settings';
+
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -35,6 +38,7 @@ import ManageClasses from './pages/admin/ManageClasses'; // NEW
 import Classes from './pages/admin/Classes';
 import Reports from './pages/admin/Reports';
 import Equipment from './pages/admin/Equipment';
+import AdminSettings from './pages/admin/Settings';
 
 // Trainer Pages
 import TrainerDashboard from './pages/trainer/Dashboard';
@@ -83,11 +87,15 @@ export default function App() {
         <Route index element={<Navigate to="dashboard" />} />
         <Route path="dashboard" element={<MemberDashboard />} />
         <Route path="profile-setup" element={<MemberProfileSetup />} />
+        <Route path="profile" element={<MemberProfile />}/>
         <Route path="schedule" element={<Schedule />} />
         <Route path="workouts" element={<WorkoutPlans />} />
         <Route path="payment" element={<Payment />} />
         <Route path="scan" element={<ScanAttendance />} /> 
         <Route path="history" element={<History />} />
+        <Route path="settings" element={<MemberSettings />} />
+  
+
       </Route>
 
       {/* --- ADMIN PORTAL --- */}
@@ -107,6 +115,7 @@ export default function App() {
         <Route path="classes" element={<ManageClasses />} />
         <Route path="reports" element={<Reports />} />
         <Route path="equipment" element={<Equipment />} />
+        <Route path="settings" element={<AdminSettings />} />
         
       </Route>
 

@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, CreditCard, LogOut, 
   Menu, X, Calendar, ClipboardCheck,
-  TrendingUp, Wrench
+  TrendingUp, Wrench, Settings
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -110,6 +110,15 @@ export default function AdminLayout() {
           <Link to="/admin/reports" className={getLinkClass('/admin/reports')}>
             <TrendingUp size={18} />
             Reports & Analytics
+          </Link>
+
+          <div className="pt-5 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+            System
+          </div>
+
+          <Link to="/admin/settings" className={getLinkClass('/admin/settings')}>
+            <Settings size={18} />
+            Settings & Config
           </Link>
 
         </nav>

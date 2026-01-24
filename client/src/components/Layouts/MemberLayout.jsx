@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, Calendar, CheckCircle, LogOut, User, Menu, X, QrCode, Dumbbell, CreditCard 
+  LayoutDashboard, Calendar, CheckCircle, LogOut, User, Menu, X, QrCode, Dumbbell, CreditCard, Settings 
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -100,6 +100,11 @@ export default function MemberLayout() {
            <Link to="/member/profile" className={getLinkClass('/member/profile')}>
             <User size={18} />
             My Profile
+          </Link>
+
+          <Link to="/member/settings" className={getLinkClass('/member/settings')}>
+            <Settings size={18} />
+            Settings
           </Link>
 
         </nav>

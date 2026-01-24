@@ -1,18 +1,45 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Dumbbell, Users, Calendar, ArrowRight, CheckCircle, Star, TrendingUp, ShieldCheck } from 'lucide-react';
+import api from '../services/api'; // Import API to fetch settings
+import { Dumbbell, Users, Calendar, ArrowRight, CheckCircle, Star } from 'lucide-react';
 
 export default function LandingPage() {
+  // 1. State for Dynamic Configuration (with Defaults)
+  const [config, setConfig] = useState({
+    system_name: "Royal Fitness Kingdom",
+    gym_location: "Colombo, Sri Lanka",
+    contact_email: "support@royalfitness.com",
+    contact_phone: "+94 11 234 5678"
+  });
+
+  // 2. Fetch Settings on Component Mount
+  useEffect(() => {
+    api.get('/settings/public-config')
+      .then(res => {
+        // Update state if data exists
+        if (res.data) {
+          setConfig(prev => ({
+            ...prev, // Keep existing defaults
+            ...res.data // Overwrite with whatever comes from DB
+          }));
+        }
+      })
+      .catch(err => console.error("Failed to load system config", err));
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-600 selection:text-white animate-fade-in">
       
       {/* --- NAVIGATION (Glass Effect) --- */}
       <nav className="fixed w-full z-50 top-0 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-white/20">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          
+          {/* DYNAMIC LOGO */}
           <div className="text-2xl font-black tracking-tighter text-slate-900 flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              R
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white uppercase">
+              {config.system_name.charAt(0)}
             </div>
-            ROYAL<span className="text-blue-600">FITNESS</span>
+            <span className="uppercase">{config.system_name}</span>
           </div>
           
           <div className="hidden md:flex items-center space-x-8">
@@ -46,7 +73,7 @@ export default function LandingPage() {
         <div className="relative z-10 container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
           <div className="max-w-2xl space-y-8 animate-fade-in-up">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider">
-              <Star size={12} fill="currentColor" /> #1 Rated Gym in the City
+              <Star size={12} fill="currentColor" /> #1 Rated Gym in {config.gym_location.split(',')[0]}
             </div>
             
             <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.1] tracking-tight">
@@ -57,7 +84,7 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-lg text-slate-400 leading-relaxed max-w-lg">
-              Stop wishing, start working. Join an elite community dedicated to strength, discipline, and results. Your transformation starts here.
+              Stop wishing, start working. Join <b>{config.system_name}</b> — an elite community dedicated to strength, discipline, and results. Your transformation starts here.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -90,11 +117,11 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* --- FEATURES SECTION (Bento Grid Style) --- */}
+      {/* --- FEATURES SECTION --- */}
       <section id="features" className="py-24 bg-white relative">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-2">Why Royal Fitness</h2>
+            <h2 className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-2">Why {config.system_name}</h2>
             <h3 className="text-4xl font-black text-slate-900 tracking-tight">Everything you need to exceed your limits.</h3>
           </div>
           
@@ -196,7 +223,7 @@ export default function LandingPage() {
             READY TO LEVEL UP?
           </h2>
           <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
-            Your future self is waiting. Join Royal Fitness Kingdom today and build the body you deserve.
+            Your future self is waiting. Join <b>{config.system_name}</b> today and build the body you deserve.
           </p>
           <Link to="/register" className="inline-flex items-center px-10 py-5 bg-white text-slate-900 rounded-full font-black text-lg hover:bg-blue-50 transition-transform hover:scale-105">
             Join The Kingdom <ArrowRight className="ml-2" />
@@ -208,8 +235,8 @@ export default function LandingPage() {
       <footer className="bg-slate-950 text-slate-400 py-12 border-t border-slate-900">
         <div className="container mx-auto px-6 grid md:grid-cols-4 gap-8 mb-8">
           <div className="col-span-1 md:col-span-2">
-             <div className="text-2xl font-black text-white mb-4">ROYAL<span className="text-blue-600">FITNESS</span></div>
-             <p className="max-w-xs text-sm">Premium fitness facilities designed for those who refuse to settle for average.</p>
+              <div className="text-2xl font-black text-white mb-4 uppercase">{config.system_name}</div>
+              <p className="max-w-xs text-sm">Premium fitness facilities designed for those who refuse to settle for average.</p>
           </div>
           <div>
             <h4 className="text-white font-bold mb-4">Quick Links</h4>
@@ -222,14 +249,21 @@ export default function LandingPage() {
           <div>
             <h4 className="text-white font-bold mb-4">Contact</h4>
             <ul className="space-y-2 text-sm">
-              <li>support@royalfitness.com</li>
-              <li>+94 11 234 5678</li>
-              <li>Colombo, Sri Lanka</li>
+              {/* DYNAMIC EMAIL */}
+              <li>{config.contact_email}</li>
+              
+              {/* DYNAMIC PHONE */}
+              <li>{config.contact_phone}</li>
+              
+              {/* DYNAMIC LOCATION */}
+              <li className="flex items-start gap-2">
+                 {config.gym_location}
+              </li>
             </ul>
           </div>
         </div>
         <div className="text-center text-xs pt-8 border-t border-slate-900">
-          <p>© 2026 Royal Fitness Kingdom. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {config.system_name}. All rights reserved.</p>
         </div>
       </footer>
     </div>

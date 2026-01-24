@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
+const User = require("./User"); // Import User Model
 
 const MemberProfile = sequelize.define("MemberProfile", {
   profile_id: {
@@ -10,7 +11,7 @@ const MemberProfile = sequelize.define("MemberProfile", {
   user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    unique: true, // <--- VALIDATION: Prevents duplicate profiles for the same user
+    unique: true,
     validate: {
       notNull: { msg: "User ID is required" }
     }
@@ -27,29 +28,25 @@ const MemberProfile = sequelize.define("MemberProfile", {
   },
   age: {
     type: DataTypes.INTEGER,
-    allowNull: true // We will calculate this automatically
+    allowNull: true
   },
 
   // Physical Stats
   gender: {
     type: DataTypes.STRING,
     validate: {
-      isIn: [['Male', 'Female', 'Other']] // <--- VALIDATION: Only allows these values
+      isIn: [['Male', 'Female', 'Other']] 
     }
   },
   height: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: false,
-    validate: {
-      min: 0 // Cannot be negative
-    }
+    validate: { min: 0 }
   },
   weight: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: false,
-    validate: {
-      min: 0 // Cannot be negative
-    }
+    validate: { min: 0 }
   },
   
   // Contact & Medical
@@ -80,5 +77,8 @@ const MemberProfile = sequelize.define("MemberProfile", {
   tableName: "member_profiles",
   timestamps: false
 });
+
+// --- ADD ASSOCIATION HERE ---
+MemberProfile.belongsTo(User, { foreignKey: 'user_id' });
 
 module.exports = MemberProfile;
