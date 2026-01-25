@@ -2,18 +2,18 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable'; // Updated Import
 import { formatCurrency, formatChartCurrency } from '../../utils/currencyFormatter';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
-import { Download } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 
 export default function Reports() {
   const [data, setData] = useState({ financial: [], attendance: [], membership: [] });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('FINANCIAL'); // FINANCIAL | ATTENDANCE | MEMBERSHIP
+  const [activeTab, setActiveTab] = useState('FINANCIAL');
 
   // Colors for Pie Chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -33,51 +33,132 @@ export default function Reports() {
     }
   };
 
-  // --- PDF GENERATOR FUNCTION ---
+  // --- PDF GENERATOR ---
   const downloadPDF = (type) => {
-    const doc = new jsPDF();
-    const date = new Date().toLocaleDateString();
+    try {
+      const doc = new jsPDF();
+      const date = new Date().toLocaleDateString();
 
-    doc.setFontSize(20);
-    doc.text(`Royal Fitness - ${type} Report`, 14, 22);
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${date}`, 14, 30);
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(41, 128, 185); // Blue
+      doc.text(`Royal Fitness - ${type} Report`, 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${date}`, 14, 30);
 
-    let tableColumn = [];
-    let tableRows = [];
+      let tableColumn = [];
+      let tableRows = [];
 
-    if (type === 'Financial') {
-      tableColumn = ["Month", "Transactions", "Total Revenue (Rs.)"];
-      tableRows = data.financial.map(row => [
-        row.month,
-        row.transaction_count,
-        `Rs. ${Number(row.total_revenue).toFixed(2)}`
-      ]);
-    } else if (type === 'Attendance') {
-      tableColumn = ["Date", "Total Check-ins"];
-      tableRows = data.attendance.map(row => [
-        row.date,
-        row.count
-      ]);
-    } else if (type === 'Membership') {
-      tableColumn = ["Plan Name", "Active Members"];
-      tableRows = data.membership.map(row => [
-        row.plan_name || 'Unassigned',
-        row.member_count
-      ]);
+      // Data Mapping
+      if (type === 'Financial') {
+        tableColumn = ["Month", "Transactions", "Total Revenue"];
+        if (data.financial.length === 0) {
+           toast.error("No financial data to export");
+           return;
+        }
+        tableRows = data.financial.map(row => [
+          row.month,
+          row.transaction_count,
+          `Rs. ${Number(row.total_revenue).toFixed(2)}`
+        ]);
+      } else if (type === 'Attendance') {
+        tableColumn = ["Date", "Total Check-ins"];
+        if (data.attendance.length === 0) {
+           toast.error("No attendance data to export");
+           return;
+        }
+        tableRows = data.attendance.map(row => [
+          row.date,
+          row.count
+        ]);
+      } else if (type === 'Membership') {
+        tableColumn = ["Plan Name", "Active Members"];
+        if (data.membership.length === 0) {
+           toast.error("No membership data to export");
+           return;
+        }
+        tableRows = data.membership.map(row => [
+          row.plan_name || 'Unassigned',
+          row.member_count
+        ]);
+      }
+
+      // Generate Table
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 10, cellPadding: 3 },
+      });
+
+      // Save File
+      doc.save(`${type}_Report.pdf`);
+      toast.success(`${type} Report PDF Downloaded`);
+
+    } catch (err) {
+      console.error("PDF Generation Error:", err);
+      toast.error("Failed to generate PDF. Check console.");
     }
-
-    doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 40,
-      theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185] }
-    });
-
-    doc.save(`${type}_Report_${Date.now()}.pdf`);
-    toast.success(`${type} Report Downloaded`);
   };
+
+  // --- CSV GENERATOR ---
+  const downloadCSV = (type) => {
+    try {
+      let headers = [];
+      let rows = [];
+
+      if (type === 'Financial') {
+        headers = ["Month", "Transactions", "Total Revenue"];
+        rows = data.financial.map(row => [
+          row.month,
+          row.transaction_count,
+          row.total_revenue
+        ]);
+      } else if (type === 'Attendance') {
+        headers = ["Date", "Total Check-ins"];
+        rows = data.attendance.map(row => [
+          row.date,
+          row.count
+        ]);
+      } else if (type === 'Membership') {
+        headers = ["Plan Name", "Active Members"];
+        rows = data.membership.map(row => [
+          row.plan_name || 'Unassigned',
+          row.member_count
+        ]);
+      }
+
+      if (rows.length === 0) {
+        toast.error("No data available to export");
+        return;
+      }
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(e => e.join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${type}_Report.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`${type} Report CSV Downloaded`);
+    } catch (err) {
+      console.error("CSV Error:", err);
+      toast.error("Failed to download CSV");
+    }
+  };
+
+  const currentType = activeTab.charAt(0) + activeTab.slice(1).toLowerCase();
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -118,15 +199,25 @@ export default function Reports() {
                 {activeTab === 'ATTENDANCE' && "Daily Check-in Volume"}
                 {activeTab === 'MEMBERSHIP' && "Membership Distribution"}
               </h3>
-              <button 
-                onClick={() => downloadPDF(activeTab.charAt(0) + activeTab.slice(1).toLowerCase())}
-                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors"
-              >
-                <Download className="w-4 h-4" /> Download PDF
-              </button>
+              
+              {/* EXPORT BUTTONS */}
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => downloadCSV(currentType)}
+                  className="flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-green-700 transition-colors"
+                >
+                  <FileText className="w-4 h-4" /> CSV
+                </button>
+                <button 
+                  onClick={() => downloadPDF(currentType)}
+                  className="flex items-center gap-2 bg-gray-900 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition-colors"
+                >
+                  <Download className="w-4 h-4" /> PDF
+                </button>
+              </div>
             </div>
 
-            {/* CHART RENDER LOGIC - FIXED CONTAINER */}
+            {/* CHART RENDER LOGIC */}
             <div style={{ width: '100%', height: 350 }}>
               {activeTab === 'FINANCIAL' && (
                 <ResponsiveContainer width="100%" height="100%">
@@ -197,7 +288,7 @@ export default function Reports() {
             </div>
 
             {/* List Details */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-[280px] overflow-y-auto">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-[280px] overflow-y-auto custom-scrollbar">
               <h4 className="font-bold text-gray-900 mb-4 border-b pb-2">Details</h4>
               
               <div className="space-y-3">

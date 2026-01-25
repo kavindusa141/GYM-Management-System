@@ -9,7 +9,7 @@ const {
 } = require("../controllers/attendance.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
-// Admin Routes
+// Admin & Staff Routes
 router.post("/checkin", verifyToken, allowRoles("ADMIN", "STAFF"), markAttendance);
 router.get("/qr-generate", verifyToken, allowRoles("ADMIN", "STAFF"), getDailyQRPayload);
 router.get("/today", verifyToken, allowRoles("ADMIN", "STAFF"), getTodayAttendance);

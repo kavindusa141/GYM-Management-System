@@ -3,7 +3,7 @@ const sequelize = require("../config/db");
 const Payment = require("../models/Payment");
 const Attendance = require("../models/Attendance");
 const MembershipPlan = require("../models/MembershipPlan");
-const UserSubscription = require("../models/UserSubscription");
+const UserSubscription = require("../models/UserSubscription"); // Correct Import
 
 // Helper to format dates YYYY-MM
 const getMonthYear = (dateStr) => {
@@ -29,7 +29,7 @@ exports.getReportsData = async (req, res) => {
         raw: true
       });
 
-      // Group by Month in Javascript (Safer than SQL)
+      // Group by Month in Javascript
       const financialMap = {};
       payments.forEach(p => {
         const month = getMonthYear(p.transaction_date);
@@ -47,7 +47,6 @@ exports.getReportsData = async (req, res) => {
 
     } catch (finError) {
       console.error("Financial Report Error:", finError.message);
-      // We swallow the error so other charts still load
     }
 
     // ==========================================
@@ -66,7 +65,7 @@ exports.getReportsData = async (req, res) => {
       // Group by Date in Javascript
       const attMap = {};
       attendance.forEach(a => {
-        const date = a.attendance_date; // Assuming YYYY-MM-DD string from DB
+        const date = a.attendance_date; 
         if (!attMap[date]) attMap[date] = 0;
         attMap[date] += 1;
       });
@@ -83,43 +82,39 @@ exports.getReportsData = async (req, res) => {
     // ==========================================
     // 3. MEMBERSHIP REPORT (Count Plans)
     // ==========================================
-
     try {
-  // Get all memberships
-  const memberships = await UserMembership.findAll({
-    where: { status: 'ACTIVE' },
-    attributes: ['plan_id'],
-    raw: true
-  });
+      // FIX: Use UserSubscription instead of UserMembership
+      const memberships = await UserSubscription.findAll({
+        where: { status: 'ACTIVE' },
+        attributes: ['plan_id'], // Ensure your DB has plan_id column or update this key
+        raw: true
+      });
 
-  // Get plan names
-  const plans = await MembershipPlan.findAll({ raw: true });
-  const planLookup = {};
-  plans.forEach(p => {
-    planLookup[p.plan_id] = p.name;
-  });
+      // Get plan names
+      const plans = await MembershipPlan.findAll({ raw: true });
+      const planLookup = {};
+      plans.forEach(p => {
+        planLookup[p.plan_id] = p.name;
+      });
 
-  // Count members per plan
-  const memMap = {};
-  memberships.forEach(m => {
-    const planName = planLookup[m.plan_id] || "Unknown Plan";
-    if (!memMap[planName]) memMap[planName] = 0;
-    memMap[planName] += 1;
-  });
+      // Count members per plan
+      const memMap = {};
+      memberships.forEach(m => {
+        const planName = planLookup[m.plan_id] || "Unknown Plan";
+        if (!memMap[planName]) memMap[planName] = 0;
+        memMap[planName] += 1;
+      });
 
-  responseData.membership = Object.keys(memMap).map(name => ({
-    plan_name: name,
-    member_count: memMap[name]
-  }));
+      responseData.membership = Object.keys(memMap).map(name => ({
+        plan_name: name,
+        member_count: memMap[name]
+      }));
 
-} catch (memError) {
-  console.error("Membership Report Error:", memError.message);
-}
+    } catch (memError) {
+      console.error("Membership Report Error:", memError.message);
+    }
 
-
-
-
-    // Send whatever data we managed to collect
+    // Send collected data
     res.json(responseData);
 
   } catch (err) {
