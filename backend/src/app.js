@@ -50,6 +50,7 @@ const equipmentRoutes = require("./routes/equipment.routes");
 const bookingRoutes = require("./routes/booking.routes");
 const membershipRoutes = require("./routes/membership.routes");
 const settingsRoutes = require("./routes/settings.routes");
+const availabilityRoutes = require("./routes/availability.routes");
 
 // ===============================
 // APP INITIALIZATION
@@ -76,6 +77,7 @@ app.use("/api/equipment", equipmentRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/memberships", membershipRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/availability", availabilityRoutes);
 
 // Dashboard routes (shared but role-protected internally)
 app.use("/api/admin", dashboardRoutes);

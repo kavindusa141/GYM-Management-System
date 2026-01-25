@@ -35,6 +35,11 @@ const GymClass = sequelize.define("GymClass", {
   capacity: {
     type: DataTypes.INTEGER,
     defaultValue: 20
+  },
+  // --- NEW FIELD ---
+  status: {
+    type: DataTypes.ENUM('SCHEDULED', 'CANCELLED', 'COMPLETED'),
+    defaultValue: 'SCHEDULED'
   }
 }, {
   tableName: "gym_classes",

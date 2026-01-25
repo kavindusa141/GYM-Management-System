@@ -32,10 +32,9 @@ import AdminDashboard from './pages/admin/Dashboard';
 import MemberManagement from './pages/admin/MemberManagement';
 import ManageStaff from './pages/admin/ManageStaff';
 import Attendance from './pages/admin/Attendance';
-import CreateMembershipPlan from './pages/admin/CreatePlan'; // Renamed to avoid conflict
+import CreateMembershipPlan from './pages/admin/CreatePlan'; 
 import Billing from './pages/admin/Billing';
-import ManageClasses from './pages/admin/ManageClasses'; // NEW
-import Classes from './pages/admin/Classes';
+import ManageClasses from './pages/admin/ManageClasses';
 import Reports from './pages/admin/Reports';
 import Equipment from './pages/admin/Equipment';
 import AdminSettings from './pages/admin/Settings';
@@ -45,6 +44,9 @@ import TrainerDashboard from './pages/trainer/Dashboard';
 import CreateWorkoutPlan from './pages/trainer/CreatePlan';
 import ClientProgress from './pages/trainer/ClientProgress';
 import ManagePlans from './pages/trainer/ManagePlans';
+import MyClasses from './pages/trainer/MyClasses';
+import MyAvailability from './pages/trainer/MyAvailability';
+import TrainerSettings from './pages/trainer/Settings';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/Dashboard';
@@ -110,7 +112,6 @@ export default function App() {
         <Route path="members" element={<MemberManagement />} />
         <Route path="staff" element={<ManageStaff />} />
         <Route path="attendance" element={<Attendance />} />
-        <Route path="classes" element={<Classes />} />
         <Route path="create-plan" element={<CreateMembershipPlan />} />
         <Route path="billing" element={<Billing />} />
         <Route path="classes" element={<ManageClasses />} />
@@ -132,6 +133,9 @@ export default function App() {
   <Route path="plans" element={<ManagePlans />} />
   <Route path="edit-plan/:id" element={<CreateWorkoutPlan />} />
   <Route path="progress" element={<ClientProgress />} />
+  <Route path="classes" element={<MyClasses />} />
+  <Route path="availability" element={<MyAvailability />} />
+  <Route path="settings" element={<TrainerSettings />} />
 </Route>
 
 

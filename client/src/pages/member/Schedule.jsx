@@ -33,7 +33,7 @@ export default function Schedule() {
     }
   };
 
-  // --- HELPER: Calculate Next Specific Date for a Day of Week ---
+  // Helper: Get Next Date
   const getNextDate = (dayName) => {
     if (!dayName) return "N/A";
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -43,20 +43,20 @@ export default function Schedule() {
     
     let daysUntil = targetDay - currentDay;
     if (daysUntil <= 0) {
-      daysUntil += 7; // Look ahead to next week
+      daysUntil += 7; 
     }
     
     const nextDate = new Date(today);
     nextDate.setDate(today.getDate() + daysUntil);
-    return nextDate.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+    return nextDate.toISOString().split('T')[0]; 
   };
 
-  // --- ACTIONS ---
+  // Actions
   const handleBook = async (classId) => {
     try {
       const res = await api.post('/bookings/book', { class_id: classId });
       toast.success(res.data.message);
-      fetchData(); // Refresh to update button state
+      fetchData(); 
     } catch (error) {
       toast.error(error.response?.data?.message || "Booking Failed");
     }
@@ -73,7 +73,6 @@ export default function Schedule() {
     }
   };
 
-  // Helper: Check if I am already booked for the UPCOMING session of this class
   const isBookedForNextSession = (classId, dayOfWeek) => {
     const nextDate = getNextDate(dayOfWeek);
     return myBookings.some(b => 
@@ -83,7 +82,6 @@ export default function Schedule() {
     );
   };
 
-  // Helper: Format Date for Display
   const formatDisplayDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('en-US', { 
       weekday: 'short', month: 'short', day: 'numeric' 
@@ -144,22 +142,36 @@ export default function Schedule() {
                 classes.map((cls) => {
                   const nextSessionDate = getNextDate(cls.day_of_week);
                   const alreadyBooked = isBookedForNextSession(cls.class_id, cls.day_of_week);
+                  const isCancelled = cls.status === 'CANCELLED'; // CHECK STATUS
                   
                   return (
-                    <div key={cls.class_id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col h-full relative overflow-hidden">
+                    <div key={cls.class_id} className={`relative bg-white rounded-2xl p-6 border shadow-sm transition-all flex flex-col h-full overflow-hidden group ${
+                       isCancelled ? 'border-red-100 bg-red-50/20 grayscale-[0.8] hover:grayscale-0' : 'border-gray-100 hover:shadow-md'
+                    }`}>
                       
+                      {/* --- CANCELLED OVERLAY --- */}
+                      {isCancelled && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px] pointer-events-none group-hover:bg-white/40 transition-all">
+                          <span className="bg-red-600 text-white px-4 py-2 rounded-xl font-black uppercase tracking-widest text-sm shadow-xl transform -rotate-12 border-2 border-white">
+                            Cancelled
+                          </span>
+                        </div>
+                      )}
+
                       {/* Decorative Accent */}
-                      <div className="absolute top-0 left-0 w-1 h-full bg-blue-600"></div>
+                      <div className={`absolute top-0 left-0 w-1 h-full ${isCancelled ? 'bg-red-300' : 'bg-blue-600'}`}></div>
 
                       {/* Header */}
                       <div className="flex justify-between items-start mb-4 pl-2">
                         <div>
-                          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded">
+                          <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded ${
+                             isCancelled ? 'bg-red-100 text-red-600' : 'bg-blue-50 text-blue-600'
+                          }`}>
                             Every {cls.day_of_week}
                           </span>
                           <h3 className="text-xl font-black text-gray-900 mt-2">{cls.name}</h3>
                         </div>
-                        {alreadyBooked && (
+                        {alreadyBooked && !isCancelled && (
                           <span className="bg-green-100 text-green-700 p-1.5 rounded-full">
                             <CheckCircle size={20}/>
                           </span>
@@ -176,7 +188,6 @@ export default function Schedule() {
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <User size={16} className="text-blue-500"/>
-                          {/* Fallback if Trainer object is missing */}
                           <span className="font-medium">{cls.Trainer?.name || "Staff Trainer"}</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -186,8 +197,12 @@ export default function Schedule() {
                       </div>
 
                       {/* Button */}
-                      <div className="pl-2">
-                        {alreadyBooked ? (
+                      <div className="pl-2 relative z-20">
+                        {isCancelled ? (
+                           <button disabled className="w-full py-3 bg-gray-200 text-gray-500 font-bold rounded-xl cursor-not-allowed border border-gray-300">
+                             Class Cancelled
+                           </button>
+                        ) : alreadyBooked ? (
                           <button 
                             disabled
                             className="w-full py-3 bg-gray-100 text-gray-400 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
@@ -225,7 +240,6 @@ export default function Schedule() {
                     <div key={booking.booking_id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
                       
                       <div className="flex items-start gap-4">
-                        {/* Big Date Box */}
                         <div className="w-16 h-16 bg-blue-50 text-blue-700 rounded-xl flex flex-col items-center justify-center shrink-0 border border-blue-100">
                           <span className="text-xs font-bold uppercase">{new Date(booking.booking_date).toLocaleString('default', { month: 'short' })}</span>
                           <span className="text-xl font-black">{new Date(booking.booking_date).getDate()}</span>
