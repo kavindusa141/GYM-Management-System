@@ -11,8 +11,8 @@ const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
 // PUBLIC ROUTES (Or Authenticated Members)
 // Anyone logged in can view available plans
-router.get("/", verifyToken, getAllPlans); 
-router.get("/:id", verifyToken, getPlanById);
+router.get("/", getAllPlans); 
+router.get("/:id", getPlanById);
 
 // ADMIN ROUTES
 // Only Admins can manage the catalogue

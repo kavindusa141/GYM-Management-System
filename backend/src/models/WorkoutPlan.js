@@ -26,6 +26,16 @@ const WorkoutPlan = sequelize.define("WorkoutPlan", {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  // --- NEW FIELDS ---
+  start_date: {
+    type: DataTypes.DATEONLY, // YYYY-MM-DD
+    allowNull: true
+  },
+  end_date: {
+    type: DataTypes.DATEONLY, // YYYY-MM-DD
+    allowNull: true
+  },
+  // ------------------
   status: {
     type: DataTypes.ENUM('ACTIVE', 'COMPLETED', 'ARCHIVED'),
     defaultValue: 'ACTIVE'

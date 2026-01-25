@@ -44,6 +44,7 @@ import AdminSettings from './pages/admin/Settings';
 import TrainerDashboard from './pages/trainer/Dashboard';
 import CreateWorkoutPlan from './pages/trainer/CreatePlan';
 import ClientProgress from './pages/trainer/ClientProgress';
+import ManagePlans from './pages/trainer/ManagePlans';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/Dashboard';
@@ -128,6 +129,8 @@ export default function App() {
   <Route index element={<Navigate to="dashboard" />} />
   <Route path="dashboard" element={<TrainerDashboard />} />
   <Route path="create-plan" element={<CreateWorkoutPlan />} />
+  <Route path="plans" element={<ManagePlans />} />
+  <Route path="edit-plan/:id" element={<CreateWorkoutPlan />} />
   <Route path="progress" element={<ClientProgress />} />
 </Route>
 

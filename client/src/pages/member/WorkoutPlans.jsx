@@ -62,10 +62,18 @@ export default function WorkoutPlans() {
                   <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0"><Activity size={24} /></div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
-                    <div className="flex gap-4 mt-1 text-sm text-gray-500">
+                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1"><User size={14}/> {plan.Trainer?.name || 'Staff'}</span>
-                      {/* Date Fix Applied Here */}
-                      <span className="flex items-center gap-1"><Calendar size={14}/> {new Date(plan.createdAt || plan.created_at).toLocaleDateString()}</span>
+                      
+                      {/* --- NEW: Date Range Display --- */}
+                      {plan.start_date && plan.end_date ? (
+                         <span className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold text-gray-600">
+                           <Calendar size={12}/> 
+                           {new Date(plan.start_date).toLocaleDateString()} - {new Date(plan.end_date).toLocaleDateString()}
+                         </span>
+                      ) : (
+                         <span className="flex items-center gap-1"><Calendar size={14}/> {new Date(plan.createdAt || plan.created_at).toLocaleDateString()}</span>
+                      )}
                     </div>
                   </div>
                 </div>
