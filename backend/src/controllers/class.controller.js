@@ -48,11 +48,11 @@ exports.getAllClasses = async (req, res) => {
   }
 };
 
-// 3. Update Class (NEW)
+// 3. Update Class
 exports.updateClass = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, trainer_id, day_of_week, start_time, duration, capacity } = req.body;
+    const { name, trainer_id, day_of_week, start_time, duration, capacity, status } = req.body;
 
     const cls = await GymClass.findByPk(id);
     if (!cls) return res.status(404).json({ message: "Class not found" });
@@ -64,7 +64,8 @@ exports.updateClass = async (req, res) => {
       day_of_week,
       start_time,
       duration,
-      capacity
+      capacity,
+      status 
     });
 
     res.json({ message: "Class updated successfully", cls });
@@ -96,20 +97,33 @@ exports.getTrainerClasses = async (req, res) => {
   }
 };
 
-// 6. Cancel Class by Trainer
-exports.cancelClassByTrainer = async (req, res) => {
+// 6. Cancel Class (UPDATED: Allows STAFF to cancel any class)
+exports.cancelClass = async (req, res) => {
   try {
     const { id } = req.params;
-    const cls = await GymClass.findOne({ 
-      where: { class_id: id, trainer_id: req.user.id } 
-    });
+    const userId = req.user.id;
+    const userRole = req.user.role;
 
-    if (!cls) return res.status(404).json({ message: "Class not found or not assigned to you." });
+    let cls;
+
+    // Logic: ADMIN and STAFF can cancel ANY class.
+    if (userRole === 'ADMIN' || userRole === 'STAFF') {
+      cls = await GymClass.findByPk(id);
+    } else {
+      // TRAINER can only cancel their OWN class.
+      cls = await GymClass.findOne({ 
+        where: { class_id: id, trainer_id: userId } 
+      });
+    }
+
+    if (!cls) {
+      return res.status(404).json({ message: "Class not found or you don't have permission." });
+    }
 
     cls.status = 'CANCELLED';
     await cls.save();
 
-    res.json({ message: "Class cancelled successfully." });
+    res.json({ message: "Class cancelled successfully.", cls });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

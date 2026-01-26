@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { User, Mail, Lock, Phone, ArrowRight, Trophy, CheckCircle, Key, X } from 'lucide-react';
 
+import RegisterBG from '../../assets/images/RegisterBG.jpg';
+
 export default function Register() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -54,7 +56,7 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-900 py-10">
       {/* Background */}
       <div className="absolute inset-0 z-0">
-        <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80" alt="Gym" className="w-full h-full object-cover opacity-30"/>
+        <img src={RegisterBG} alt="Gym Register Background" className="w-full h-full object-cover opacity-30"/>
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-900/90 to-blue-900/40" />
       </div>
 

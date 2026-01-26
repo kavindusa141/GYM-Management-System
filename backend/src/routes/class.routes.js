@@ -5,22 +5,24 @@ const {
   getAllClasses,
   updateClass, 
   deleteClass,
-  getTrainerClasses,    // <--- New Import
-  cancelClassByTrainer  // <--- New Import
+  getTrainerClasses,
+  cancelClass // <--- Updated Import (was cancelClassByTrainer)
 } = require("../controllers/class.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
-// Public/Member/Admin can view all
+// Public/Member/Admin/Staff can view all
 router.get("/", verifyToken, allowRoles("ADMIN", "TRAINER", "MEMBER", "STAFF"), getAllClasses);
 
-// Admin can Create/Delete
+// ADMIN and STAFF can Create/Update/Delete (Full Management)
 router.post("/", verifyToken, allowRoles("ADMIN", "STAFF"), createClass);
 router.put("/:id", verifyToken, allowRoles("ADMIN", "STAFF"), updateClass);
 router.delete("/:id", verifyToken, allowRoles("ADMIN", "STAFF"), deleteClass);
 
+// --- CANCEL ROUTE (Updated) ---
+// Allows ADMIN, STAFF (any class), and TRAINER (own class) to cancel
+router.patch("/:id/cancel", verifyToken, allowRoles("ADMIN", "STAFF", "TRAINER"), cancelClass);
 
 // --- TRAINER ROUTES ---
 router.get("/trainer/my-classes", verifyToken, allowRoles("TRAINER"), getTrainerClasses);
-router.patch("/:id/cancel", verifyToken, allowRoles("TRAINER"), cancelClassByTrainer);
 
 module.exports = router;

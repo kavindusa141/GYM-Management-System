@@ -2,8 +2,21 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Dumbbell, Users, Calendar, ArrowRight, CheckCircle, Star, Package, ChevronDown, ChevronUp, Menu, X 
+  Dumbbell, Users, Calendar, ArrowRight, CheckCircle, Star, Package, ChevronDown, ChevronUp, Menu, X, Instagram 
 } from 'lucide-react';
+
+
+import GYM_Background from '../assets/images/GYM_Background.jpg';
+// --- IMPORT ALL 9 LOCAL IMAGES ---
+import gym1 from '../assets/images/gym1.jpeg';
+import gym2 from '../assets/images/gym2.jpeg';
+import gym3 from '../assets/images/gym3.jpeg';
+import gym4 from '../assets/images/gym4.jpeg';
+import gym5 from '../assets/images/gym5.jpeg';
+import gym6 from '../assets/images/gym6.jpeg';
+import gym7 from '../assets/images/gym7.jpeg';
+import gym8 from '../assets/images/gym8.jpeg';
+import gym9 from '../assets/images/gym9.jpeg';
 
 export default function LandingPage() {
   const [config, setConfig] = useState({
@@ -21,6 +34,19 @@ export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // --- GALLERY CONFIGURATION (ALL 9 IMAGES) ---
+  const galleryImages = [
+    { url: gym1, title: "Main Strength Zone", subtitle: "Hammer Strength Certified" },
+    { url: gym2, title: "Free Weights Area", subtitle: "Dumbbells up to 50kg" },
+    { url: gym3, title: "Personal Training", subtitle: "1-on-1 Elite Coaching" },
+    { url: gym4, title: "Cardio Theater", subtitle: "Life Fitness Consoles" },
+    { url: gym5, title: "CrossFit Box", subtitle: "Functional Training" },
+    { url: gym6, title: "Group Studio", subtitle: "Yoga & Pilates" },
+    { url: gym7, title: "HIIT Zone", subtitle: "High Intensity Training" },
+    { url: gym8, title: "Recovery Lounge", subtitle: "Post-Workout Relax" },
+    { url: gym9, title: "Premium Amenities", subtitle: "Luxury Locker Rooms" }
+  ];
+
   useEffect(() => {
     // 1. Load Data
     api.get('/settings/public-config')
@@ -32,10 +58,9 @@ export default function LandingPage() {
       .catch(console.error)
       .finally(() => setLoadingPlans(false));
 
-    // 2. Scroll Handler with Debugging
+    // 2. Scroll Handler
     const handleScroll = () => {
       const offset = window.scrollY;
-      // console.log("Scroll Y:", offset); // <--- Uncomment to debug
       setIsScrolled(offset > 50);
     };
 
@@ -63,8 +88,8 @@ export default function LandingPage() {
       <nav 
         className={`fixed w-full z-50 top-0 transition-all duration-300 border-b 
         ${isScrolled 
-          ? 'bg-white border-gray-200 py-3 shadow-md' // Scrolled: White & Compact
-          : 'bg-transparent border-transparent py-6'  // Top: Transparent & Spaced
+          ? 'bg-white border-gray-200 py-3 shadow-md' 
+          : 'bg-transparent border-transparent py-6' 
         }`}
       >
         <div className="container mx-auto px-6 flex items-center justify-between">
@@ -80,6 +105,7 @@ export default function LandingPage() {
           {/* DESKTOP LINKS */}
           <div className="hidden md:flex items-center space-x-8">
             <a href="#features" className={`text-sm font-bold transition-colors duration-300 ${isScrolled ? 'text-slate-500 hover:text-blue-600' : 'text-slate-300 hover:text-white'}`}>FEATURES</a>
+            <a href="#gallery" className={`text-sm font-bold transition-colors duration-300 ${isScrolled ? 'text-slate-500 hover:text-blue-600' : 'text-slate-300 hover:text-white'}`}>GALLERY</a>
             <a href="#pricing" className={`text-sm font-bold transition-colors duration-300 ${isScrolled ? 'text-slate-500 hover:text-blue-600' : 'text-slate-300 hover:text-white'}`}>PRICING</a>
           </div>
 
@@ -119,6 +145,7 @@ export default function LandingPage() {
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl p-6 flex flex-col gap-4 md:hidden animate-fade-in-up">
             <a href="#features" className="text-slate-600 font-bold py-2" onClick={() => setMobileMenuOpen(false)}>FEATURES</a>
+            <a href="#gallery" className="text-slate-600 font-bold py-2" onClick={() => setMobileMenuOpen(false)}>GALLERY</a>
             <a href="#pricing" className="text-slate-600 font-bold py-2" onClick={() => setMobileMenuOpen(false)}>PRICING</a>
             <hr className="border-gray-100" />
             <Link to="/login" className="text-slate-900 font-bold py-2 text-center" onClick={() => setMobileMenuOpen(false)}>Log In</Link>
@@ -131,7 +158,7 @@ export default function LandingPage() {
       <header className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-slate-900">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80" 
+            src={GYM_Background}
             alt="Gym Background" 
             className="w-full h-full object-cover opacity-60"
           />
@@ -188,8 +215,64 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- DYNAMIC PRICING SECTION --- */}
-      <section id="pricing" className="py-24 bg-slate-50">
+      {/* --- GALLERY SECTION (UPDATED: All 9 Images) --- */}
+      <section id="gallery" className="py-24 bg-slate-950 relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-900/10 to-transparent pointer-events-none"></div>
+
+        <div className="container mx-auto px-6 mb-12 relative z-10">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+            <div className="max-w-xl">
+              <h2 className="text-sm font-bold text-blue-500 uppercase tracking-widest mb-2">Inside The Kingdom</h2>
+              <h3 className="text-4xl font-black text-white tracking-tight">World-class facilities.</h3>
+              <p className="text-slate-400 mt-4 leading-relaxed">
+                Swipe through our premium training zones. Every corner is built to inspire greatness.
+              </p>
+            </div>
+            {/* Scroll Indicator */}
+            <div className="hidden md:flex items-center gap-2 text-slate-500 text-sm font-bold">
+              <span>Scroll to explore</span> <ArrowRight size={16} />
+            </div>
+          </div>
+        </div>
+
+        {/* HORIZONTAL SCROLL CONTAINER */}
+        <div className="flex overflow-x-auto gap-6 px-6 pb-12 snap-x snap-mandatory scroll-smooth no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {galleryImages.map((img, idx) => (
+            <div 
+              key={idx} 
+              className="relative shrink-0 w-[85vw] md:w-[600px] h-[500px] rounded-[2rem] overflow-hidden snap-center group cursor-pointer border border-white/5 shadow-2xl"
+            >
+              <img 
+                src={img.url} 
+                alt={img.title} 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+              />
+              
+              {/* Dark Gradient Overlay (Bottom) */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity"></div>
+              
+              {/* Glass Info Card */}
+              <div className="absolute bottom-6 left-6 right-6">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <h4 className="text-white font-bold text-2xl mb-1">{img.title}</h4>
+                  <div className="flex items-center justify-between">
+                    <p className="text-blue-300 text-sm font-medium tracking-wide uppercase">{img.subtitle || "Premium Zone"}</p>
+                    <div className="bg-white/20 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ArrowRight size={16} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {/* Spacer for end of scroll */}
+          <div className="w-6 shrink-0"></div>
+        </div>
+      </section>
+
+      {/* --- PRICING SECTION --- */}
+      <section id="pricing" className="py-24 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-2">Membership Plans</h2>
@@ -215,7 +298,6 @@ export default function LandingPage() {
                       key={plan.plan_id}
                       className="relative group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col"
                     >
-                      {/* Card Header */}
                       <div className="bg-slate-900 p-8 text-white relative overflow-hidden shrink-0">
                         <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-transform duration-700">
                           <Package size={120} />
@@ -242,7 +324,6 @@ export default function LandingPage() {
                         </div>
                       </div>
 
-                      {/* Card Body */}
                       <div className="p-8 flex flex-col flex-1">
                         <p className="text-gray-500 text-sm mb-8 leading-relaxed min-h-[40px] line-clamp-2">
                           {plan.description || "Unlock full access to gym facilities and equipment."}
@@ -272,18 +353,13 @@ export default function LandingPage() {
                 })}
               </div>
 
-              {/* Show More / Show Less Button */}
               {plans.length > 3 && (
                 <div className="text-center mt-12">
                   <button
                     onClick={() => setShowAllPlans(!showAllPlans)}
                     className="inline-flex items-center gap-2 px-8 py-3 bg-white border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
                   >
-                    {showAllPlans ? (
-                      <>Show Less <ChevronUp size={16} /></>
-                    ) : (
-                      <>View All Packages <ChevronDown size={16} /></>
-                    )}
+                    {showAllPlans ? <>Show Less <ChevronUp size={16} /></> : <>View All Packages <ChevronDown size={16} /></>}
                   </button>
                 </div>
               )}

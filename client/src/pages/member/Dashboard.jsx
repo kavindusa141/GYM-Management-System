@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import api from '../../services/api'; // Import API helper
+import api from '../../services/api';
 import LiveClock from '../../components/Shared/LiveClock';
-import { Calendar, User, Activity, Clock, AlertCircle, CheckCircle, Zap, Timer } from 'lucide-react';
-import { formatCurrency } from '../../utils/currencyFormatter';
+import { Calendar, User, Activity, AlertCircle, CheckCircle, Zap, Timer, ArrowRight, CreditCard, ChevronRight } from 'lucide-react';
 
 // Helper to format minutes into "1h 20m" or "45m"
 const formatDuration = (mins) => {
@@ -21,17 +20,14 @@ export default function MemberDashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch dashboard stats from backend
     api.get('/member/member-stats')
       .then(res => {
-        console.log("Dashboard stats loaded:", res.data);
         setStats(res.data);
         setError(null);
       })
       .catch(err => {
         console.error("Failed to load stats", err);
         setError(err.message);
-        // Set default values if API fails
         setStats({
           attendanceCount: 0,
           active: false,
@@ -40,176 +36,225 @@ export default function MemberDashboard() {
           daysLeft: 0,
           startDate: null,
           upcomingClasses: 0,
-          avgMinutes: 0 // Added default for error case
+          avgMinutes: 0
         });
       })
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-10 text-center text-gray-400">Loading Dashboard...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="animate-pulse flex flex-col items-center">
+        <div className="h-12 w-12 bg-gray-200 rounded-full mb-4"></div>
+        <div className="h-4 w-32 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  );
+
+  // Safety Check: Get first name or default to "Member"
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Member';
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in pb-12">
+      
+      {/* --- Error Toast --- */}
       {error && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
-          <p className="font-semibold">Note: Some data may not be loading correctly. Please refresh if issues persist.</p>
+        <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700 shadow-sm">
+          <AlertCircle size={20} />
+          <p className="font-medium text-sm">Unable to load some data. Please refresh or try again later.</p>
         </div>
       )}
-      <header className="flex items-center justify-between">
+
+      {/* --- Header Section --- */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Hello, {user?.name}</h1>
-          <p className="text-gray-600">Welcome to your fitness dashboard.</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+            Hello, {firstName} <span className="text-2xl">👋</span>
+          </h1>
+          <p className="text-gray-500 font-medium mt-1">Here is your daily activity overview.</p>
         </div>
-        <LiveClock />
-        <Link to="/member/profile-setup" className="px-4 py-2 text-sm text-blue-600 bg-blue-100 rounded hover:bg-blue-200">
-          Edit Profile
-        </Link>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-sm font-semibold text-gray-600">
+            <LiveClock />
+          </div>
+          <Link 
+            to="/member/profile-setup" 
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-all hover:shadow-lg hover:-translate-y-0.5"
+          >
+            <User size={16} /> Edit Profile
+          </Link>
+        </div>
       </header>
 
-      {/* UPDATED GRID: Switched to 4 columns on large screens to fit the new card */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {/* --- Main Grid --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
-        {/* 1. Active Membership Package Card - PROMINENT */}
-        {/* UPDATED SPAN: Spans all columns (2 on md, 4 on lg) */}
-        <div className={`p-6 rounded-xl border-2 shadow-lg col-span-1 md:col-span-2 lg:col-span-4 transition-all ${
+        {/* 1. HERO CARD: Membership Status (Spans Full Width on lg) */}
+        <div className={`relative overflow-hidden p-8 rounded-3xl shadow-sm border col-span-1 md:col-span-2 lg:col-span-4 transition-all group ${
           stats?.active 
-            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
-            : 'bg-gradient-to-r from-red-50 to-orange-50 border-red-300'
+            ? 'bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 border-gray-800 text-white' 
+            : 'bg-white border-red-100 text-gray-900'
         }`}>
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {stats?.active ? (
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+          {/* Decorative Background Elements for Active State */}
+          {stats?.active && (
+            <>
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity duration-700"></div>
+              <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-emerald-500 rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity duration-700"></div>
+            </>
+          )}
+
+          <div className="relative z-10">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+              <div className="flex items-start gap-4">
+                <div className={`p-4 rounded-2xl ${stats?.active ? 'bg-white/10 backdrop-blur-md' : 'bg-red-50'}`}>
+                  {stats?.active ? (
+                    <CreditCard className="w-8 h-8 text-emerald-400" />
+                  ) : (
+                    <AlertCircle className="w-8 h-8 text-red-500" />
+                  )}
                 </div>
-              ) : (
-                <div className="p-3 bg-red-100 rounded-full">
-                  <AlertCircle className="w-8 h-8 text-red-600" />
+                <div>
+                  <h3 className={`text-sm font-bold uppercase tracking-wider mb-1 ${stats?.active ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Current Membership
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-3xl font-black tracking-tight">
+                      {stats?.planName || "No Plan"}
+                    </h2>
+                    {stats?.active && (
+                      <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1">
+                        <CheckCircle size={12} /> Active
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Expiring Soon Badge */}
+              {stats?.active && stats?.daysLeft <= 7 && (
+                <div className="px-4 py-2 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-xl flex items-center gap-2 animate-pulse">
+                  <Zap size={16} fill="currentColor" />
+                  <span className="font-bold text-sm">Expiring Soon</span>
                 </div>
               )}
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Your Membership</h3>
-                <p className={`text-sm font-semibold ${stats?.active ? 'text-green-700' : 'text-red-700'}`}>
-                  {stats?.active ? "✓ Currently Active" : "✗ Membership Expired"}
-                </p>
-              </div>
             </div>
-            {stats?.active && stats?.daysLeft <= 7 && (
-              <span className="flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
-                <Zap className="w-3 h-3" /> Expiring Soon
-              </span>
+
+            {/* Details Grid */}
+            {stats?.active ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatItem label="Started On" value={stats?.startDate ? new Date(stats.startDate).toLocaleDateString() : 'N/A'} darkTheme />
+                <StatItem label="Expires On" value={stats?.expiryDate ? new Date(stats.expiryDate).toLocaleDateString() : 'N/A'} darkTheme />
+                <StatItem 
+                  label="Days Left" 
+                  value={`${stats?.daysLeft} Days`} 
+                  highlight={stats?.daysLeft <= 7}
+                  darkTheme
+                />
+                <div className="hidden md:flex flex-col justify-end">
+                  <button className="text-sm font-bold text-gray-400 hover:text-white flex items-center gap-1 transition-colors">
+                    View Billing <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Inactive State CTA
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-red-50 p-6 rounded-2xl border border-red-100">
+                <div>
+                  <h4 className="font-bold text-red-700 text-lg">Action Required</h4>
+                  <p className="text-red-600/80 text-sm mt-1">Your membership is inactive. Renew now to access the gym.</p>
+                </div>
+                <Link 
+                  to="/member/payment" 
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-600/20 transition-all flex items-center gap-2"
+                >
+                  Renew Membership <ArrowRight size={18} />
+                </Link>
+              </div>
             )}
           </div>
-
-          {stats?.active && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Plan Name */}
-              <div className="bg-white/60 backdrop-blur p-4 rounded-lg border border-green-100">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Current Plan</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">{stats?.planName}</p>
-              </div>
-
-              {/* Expiry Date */}
-              <div className="bg-white/60 backdrop-blur p-4 rounded-lg border border-green-100">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Expires On</p>
-                <p className="text-lg font-bold text-gray-900 mt-1">
-                  {stats?.expiryDate ? new Date(stats.expiryDate).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                  }) : 'N/A'}
-                </p>
-              </div>
-
-              {/* Days Remaining */}
-              <div className="bg-white/60 backdrop-blur p-4 rounded-lg border border-green-100">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Days Remaining</p>
-                <p className={`text-2xl font-bold mt-1 ${
-                  stats?.daysLeft > 30 ? 'text-green-600' : 
-                  stats?.daysLeft > 7 ? 'text-orange-600' : 
-                  'text-red-600'
-                }`}>
-                  {stats?.daysLeft} days
-                </p>
-              </div>
-
-              {/* Start Date */}
-              <div className="bg-white/60 backdrop-blur p-4 rounded-lg border border-green-100">
-                <p className="text-xs text-gray-600 font-semibold uppercase">Started On</p>
-                <p className="text-lg font-bold text-gray-900 mt-1">
-                  {stats?.startDate ? new Date(stats.startDate).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                  }) : 'N/A'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {!stats?.active && (
-            <div className="bg-white/60 backdrop-blur p-4 rounded-lg border border-red-100 mt-4 flex items-center justify-between">
-              <div>
-                <p className="text-gray-900 font-semibold mb-1">Your membership has expired</p>
-                <p className="text-sm text-gray-600">Renew your membership to continue enjoying all facilities</p>
-              </div>
-              <Link 
-                to="/member/payment" 
-                className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition whitespace-nowrap ml-4"
-              >
-                Renew Now
-              </Link>
-            </div>
-          )}
         </div>
 
-        {/* 2. Membership Status Card - Compact */}
-        <div className="p-6 bg-white shadow rounded-xl border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-700">Status</h3>
-            <User className={`w-8 h-8 ${stats?.active ? 'text-green-500' : 'text-red-500'}`} />
+        {/* 2. Status Metric Card */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group">
+          <div className="flex justify-between items-start mb-4">
+            <div className={`p-3 rounded-2xl ${stats?.active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+              <Activity size={24} />
+            </div>
+            {stats?.active && <CheckCircle size={18} className="text-emerald-500" />}
           </div>
-          
-          <p className={`text-2xl font-bold ${stats?.active ? 'text-gray-900' : 'text-red-500'}`}>
+          <p className="text-gray-500 text-sm font-bold uppercase tracking-wide">Status</p>
+          <h3 className={`text-2xl font-black mt-1 ${stats?.active ? 'text-gray-900' : 'text-red-600'}`}>
             {stats?.active ? "Active" : "Expired"}
-          </p>
-          
-          <p className="text-sm text-gray-500 mt-1">
-            {stats?.active ? "Your membership is valid" : "Please renew your membership"}
-          </p>
+          </h3>
+          <p className="text-xs text-gray-400 mt-2 font-medium">Account standing</p>
         </div>
 
-        {/* 3. Book A Class Card */}
-        <Link to="/member/schedule" className="p-6 transition bg-white shadow rounded-xl hover:shadow-md group border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-700">Upcoming Classes</h3>
-            <Calendar className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform" />
+        {/* 3. Upcoming Classes (Link Card) */}
+        <Link to="/member/schedule" className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
+          <div className="absolute top-0 right-0 bg-blue-600 w-16 h-16 rounded-bl-full -mr-8 -mt-8 opacity-10 group-hover:opacity-20 transition-opacity"></div>
+          
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <Calendar size={24} />
+            </div>
+            <ArrowRight size={18} className="text-gray-300 group-hover:text-blue-600 transition-colors" />
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats?.upcomingClasses || 0}</p>
-          <p className="text-sm text-gray-500">Booked sessions</p>
+          <p className="text-gray-500 text-sm font-bold uppercase tracking-wide">Upcoming</p>
+          <h3 className="text-2xl font-black text-gray-900 mt-1">{stats?.upcomingClasses || 0}</h3>
+          <p className="text-xs text-blue-600 mt-2 font-bold flex items-center gap-1">
+             Book Class <ChevronRight size={12}/>
+          </p>
         </Link>
 
-        {/* 4. NEW: Average Duration Card */}
-        <div className="p-6 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold text-gray-700">Avg Duration</h3>
-            <Timer className="text-blue-500"/>
+        {/* 4. Avg Duration Card */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-purple-50 text-purple-600">
+              <Timer size={24} />
+            </div>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{formatDuration(stats?.avgMinutes)}</p>
-          <p className="text-xs text-gray-500 mt-1">Per session</p>
+          <p className="text-gray-500 text-sm font-bold uppercase tracking-wide">Avg Session</p>
+          <h3 className="text-2xl font-black text-gray-900 mt-1">{formatDuration(stats?.avgMinutes)}</h3>
+          <p className="text-xs text-gray-400 mt-2 font-medium">Time per visit</p>
         </div>
 
-        {/* 5. Attendance / Streak Card */}
-        <div className="p-6 bg-white shadow rounded-xl border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-700">Total Visits</h3>
-            <Activity className="w-8 h-8 text-orange-500" />
+        {/* 5. Total Visits Card */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-orange-50 text-orange-600">
+              <User size={24} />
+            </div>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats?.attendanceCount || 0}</p>
-          <p className="text-sm text-gray-500">Check-ins to date</p>
+          <p className="text-gray-500 text-sm font-bold uppercase tracking-wide">Total Visits</p>
+          <h3 className="text-2xl font-black text-gray-900 mt-1">{stats?.attendanceCount || 0}</h3>
+          <p className="text-xs text-gray-400 mt-2 font-medium">Lifetime check-ins</p>
         </div>
 
       </div>
+    </div>
+  );
+}
+
+// --- Internal Component for cleaner code ---
+function StatItem({ label, value, highlight = false, darkTheme = false }) {
+  return (
+    <div className={`p-4 rounded-2xl border transition-all ${
+      darkTheme 
+        ? 'bg-white/5 border-white/5' 
+        : 'bg-gray-50 border-gray-100'
+    } ${highlight ? 'ring-2 ring-orange-500/50 bg-orange-500/10' : ''}`}>
+      <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${
+        darkTheme ? 'text-gray-400' : 'text-gray-500'
+      }`}>
+        {label}
+      </p>
+      <p className={`font-bold truncate ${
+        highlight ? 'text-orange-400' : 
+        darkTheme ? 'text-white' : 'text-gray-900'
+      }`}>
+        {value}
+      </p>
     </div>
   );
 }

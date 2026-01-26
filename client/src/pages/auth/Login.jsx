@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom'; // Link is imported here only
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Mail, Lock, ArrowRight, Activity } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Activity, X } from 'lucide-react';
+
+import GYM_Background from '../../assets/images/GYM_Background.jpg';
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -38,7 +40,7 @@ export default function Login() {
       {/* Dynamic Background */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80" 
+          src={GYM_Background} 
           alt="Gym Background" 
           className="w-full h-full object-cover opacity-40"
         />
@@ -47,6 +49,16 @@ export default function Login() {
 
       {/* Glass Card */}
       <div className="relative z-10 w-full max-w-md p-8 mx-4 glass-card rounded-2xl animate-fade-in">
+        
+        {/* --- NEW: Close Button (Back to Home) --- */}
+        <Link 
+          to="/" 
+          className="absolute top-4 right-4 p-2 rounded-full bg-gray-800/50 hover:bg-gray-700 text-gray-400 hover:text-white transition-all"
+          title="Back to Home"
+        >
+          <X size={20} />
+        </Link>
+
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600/20 mb-4 ring-1 ring-blue-500/50">
             <Activity className="w-8 h-8 text-blue-400" />
@@ -114,7 +126,7 @@ export default function Login() {
         <p className="mt-8 text-center text-gray-400 text-sm">
           Don't have an account?{' '}
           <Link to="/register" className="text-blue-400 font-semibold hover:text-blue-300 hover:underline transition-all">
-            Join Royal Fitness
+            Join Royal Fitness Kingdom
           </Link>
         </p>
       </div>
