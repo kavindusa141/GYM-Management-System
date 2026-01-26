@@ -38,7 +38,7 @@ router.post(
 router.post(
   "/admin-pay",
   verifyToken,
-  allowRoles("ADMIN"),
+  allowRoles("ADMIN", "STAFF"),
   upload.single("slip_image"),
   createPayment
 );

@@ -11,12 +11,12 @@ const {
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
 // Public/Member/Admin can view all
-router.get("/", verifyToken, allowRoles("ADMIN", "TRAINER", "MEMBER"), getAllClasses);
+router.get("/", verifyToken, allowRoles("ADMIN", "TRAINER", "MEMBER", "STAFF"), getAllClasses);
 
 // Admin can Create/Delete
-router.post("/", verifyToken, allowRoles("ADMIN"), createClass);
-router.put("/:id", verifyToken, allowRoles("ADMIN"), updateClass);
-router.delete("/:id", verifyToken, allowRoles("ADMIN"), deleteClass);
+router.post("/", verifyToken, allowRoles("ADMIN", "STAFF"), createClass);
+router.put("/:id", verifyToken, allowRoles("ADMIN", "STAFF"), updateClass);
+router.delete("/:id", verifyToken, allowRoles("ADMIN", "STAFF"), deleteClass);
 
 
 // --- TRAINER ROUTES ---

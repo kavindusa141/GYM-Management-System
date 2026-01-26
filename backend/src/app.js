@@ -11,7 +11,7 @@ const MemberProfile = require("./models/MemberProfile");
 const UserSubscription = require("./models/UserSubscription");
 const Payment = require("./models/Payment");
 const MembershipPlan = require("./models/MembershipPlan");
-
+const Attendance = require("./models/Attendance");
 
 // ===============================
 // DEFINE ASSOCIATIONS (ONCE)
@@ -35,6 +35,9 @@ Payment.belongsTo(User, { foreignKey: "user_id", onDelete: 'RESTRICT' });
 // Payment ↔ Plan
 Payment.belongsTo(MembershipPlan, { foreignKey: "plan_id" });
 
+User.hasMany(Attendance, { foreignKey: "member_id" });
+Attendance.belongsTo(User, { foreignKey: "member_id" });
+
 // ===============================
 // IMPORT ROUTES
 // ===============================
@@ -51,6 +54,7 @@ const bookingRoutes = require("./routes/booking.routes");
 const membershipRoutes = require("./routes/membership.routes");
 const settingsRoutes = require("./routes/settings.routes");
 const availabilityRoutes = require("./routes/availability.routes");
+
 
 // ===============================
 // APP INITIALIZATION
@@ -82,6 +86,7 @@ app.use("/api/availability", availabilityRoutes);
 // Dashboard routes (shared but role-protected internally)
 app.use("/api/admin", dashboardRoutes);
 app.use("/api/member", dashboardRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // ===============================
 // STATIC FILE SERVING (CRITICAL)

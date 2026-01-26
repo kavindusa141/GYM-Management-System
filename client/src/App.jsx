@@ -51,6 +51,10 @@ import TrainerSettings from './pages/trainer/Settings';
 // Staff Pages
 import StaffDashboard from './pages/staff/Dashboard';
 import MarkAttendance from './pages/staff/MarkAttendance';
+import RegisterMember from './pages/staff/RegisterMember'; 
+import PointOfSale from './pages/staff/PointOfSale';
+import StaffSettings from './pages/staff/Settings';
+
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -148,6 +152,10 @@ export default function App() {
         <Route index element={<Navigate to="dashboard" />} />
         <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="attendance" element={<MarkAttendance />} />
+        <Route path="register" element={<RegisterMember />} />
+        <Route path="pos" element={<PointOfSale />} />
+        <Route path="classes" element={<ManageClasses />} />
+        <Route path="settings" element={<StaffSettings />} />
       </Route>
 
       {/* Catch-all Redirect */}

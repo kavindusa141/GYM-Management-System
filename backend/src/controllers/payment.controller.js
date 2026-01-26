@@ -128,7 +128,7 @@ exports.createPayment = async (req, res) => {
     let status = 'PENDING';
 
     // Admin-created payment → auto verified
-    if (req.user && req.user.role === 'ADMIN') {
+    if (req.user && (req.user.role === 'ADMIN' || req.user.role === 'STAFF')) {
       status = 'VERIFIED';
     }
 

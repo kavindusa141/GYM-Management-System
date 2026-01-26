@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, QrCode, LogOut, Menu, X, Settings, Users
+  LayoutDashboard, QrCode, LogOut, Menu, X, Settings, Users, UserPlus, CreditCard, Calendar
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -64,12 +64,36 @@ export default function StaffLayout() {
             Operations
           </div>
 
+          <Link to="/staff/register" className={getLinkClass('/staff/register')}>
+            <UserPlus size={18} />
+            Register Member
+          </Link>
+
+          <Link to="/staff/pos" className={getLinkClass('/staff/pos')}>
+            <CreditCard size={18} />
+            Billing & Payments
+          </Link>
+
           <Link to="/staff/attendance" className={getLinkClass('/staff/attendance')}>
             <QrCode size={18} />
             Attendance
           </Link>
+
+          <Link to="/staff/classes" className={getLinkClass('/staff/classes')}>
+            <Calendar size={18} />
+            Manage Classes
+          </Link>
           
           {/* Note: If you add more pages later like "Member Lookup", add them here */}
+          <div className="pt-5 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+            Account
+          </div>
+
+          {/* NEW SETTINGS LINK */}
+          <Link to="/staff/settings" className={getLinkClass('/staff/settings')}>
+            <Settings size={18} />
+            Settings
+          </Link>
           
         </nav>
 

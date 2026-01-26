@@ -3,7 +3,9 @@ const router = express.Router();
 const { 
   getDashboardStats, 
   getAnalytics, 
-  getMemberStats 
+  getMemberStats,
+  getTrainerDashboardStats,
+  getStaffDashboardStats 
 } = require("../controllers/dashboard.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
@@ -15,5 +17,11 @@ router.get("/analytics", verifyToken, allowRoles("ADMIN"), getAnalytics);
 
 // MEMBER: Personal Dashboard Stats 
 router.get("/member-stats", verifyToken, allowRoles("MEMBER"), getMemberStats);
+
+// Trainer
+router.get("/trainer-stats", verifyToken, allowRoles("TRAINER"), getTrainerDashboardStats);
+
+// STAFF: Dashboard Stats (NEW)
+router.get("/staff-stats", verifyToken, allowRoles("STAFF", "ADMIN"), getStaffDashboardStats);
 
 module.exports = router;

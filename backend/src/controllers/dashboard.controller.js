@@ -2,9 +2,11 @@ const User = require("../models/User");
 const Payment = require("../models/Payment");
 const GymClass = require("../models/GymClass");
 const Attendance = require("../models/Attendance");
-const UserSubscription = require("../models/UserSubscription"); // <--- NEW (3NF)
+const UserSubscription = require("../models/UserSubscription"); 
 const MembershipPlan = require("../models/MembershipPlan");
-const ClassBooking = require("../models/ClassBooking"); // Use if available, else optional
+const ClassBooking = require("../models/ClassBooking");
+const WorkoutPlan = require("../models/WorkoutPlan"); 
+const WorkoutLog = require("../models/WorkoutLog"); 
 const { Op } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -194,6 +196,135 @@ exports.getMemberStats = async (req, res) => {
 
   } catch (err) {
     console.error("Member Stats Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+// NEW: Get Trainer Dashboard Stats
+exports.getTrainerDashboardStats = async (req, res) => {
+  try {
+    const trainerId = req.user.id;
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0,0,0,0));
+    const endOfDay = new Date(today.setHours(23,59,59,999));
+
+    // 1. Count Active Plans (Clients)
+    const activePlans = await WorkoutPlan.count({
+      where: { trainer_id: trainerId, status: 'ACTIVE' }
+    });
+
+    // 2. Count Today's Classes
+    const todayClassesCount = await GymClass.count({
+      where: { 
+        trainer_id: trainerId,
+        status: 'SCHEDULED'
+        // Note: In a real DB, you'd filter by date here if your GymClass has a specific date. 
+        // Since GymClass uses 'day_of_week', we filter by Day Name:
+      }
+      // logic for day checking is complex in SQL generic, keeping simple count for now or filtering in JS
+    });
+
+    // 3. Get Today's Schedule (Actual Data)
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const todayName = days[new Date().getDay()];
+    
+    const todaysSchedule = await GymClass.findAll({
+      where: { 
+        trainer_id: trainerId,
+        day_of_week: todayName
+      },
+      order: [['start_time', 'ASC']]
+    });
+
+    // 4. Recent Client Logs (Last 5 logs from plans assigned by this trainer)
+    // First get plan IDs created by this trainer
+    const myPlanIds = (await WorkoutPlan.findAll({
+      where: { trainer_id: trainerId },
+      attributes: ['plan_id']
+    })).map(p => p.plan_id);
+
+    const recentLogs = await WorkoutLog.findAll({
+      where: { plan_id: { [Op.in]: myPlanIds } },
+      include: [
+        { model: User, as: 'Member', attributes: ['name'] },
+        { model: WorkoutPlan, as: 'Plan', attributes: ['name'] }
+      ],
+      order: [['created_at', 'DESC']],
+      limit: 5
+    });
+
+    res.json({
+      activeClients: activePlans,
+      todayClassCount: todaysSchedule.length, // More accurate based on day name
+      todaysSchedule,
+      recentLogs
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// STAFF: Get Front Desk Stats
+exports.getStaffDashboardStats = async (req, res) => {
+  try {
+    // 1. Get Today's Date string (YYYY-MM-DD) for DATEONLY column
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 2. Setup Date Ranges for datetime columns (like Payment.transaction_date)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // 3. Total Active Members
+    const totalMembers = await User.count({ 
+      where: { role: 'MEMBER', is_deleted: false } 
+    });
+
+    // 4. Today's Check-ins 
+    // FIXED: Use 'attendance_date' (DATEONLY) matches string 'YYYY-MM-DD'
+    const todayAttendance = await Attendance.count({
+      where: { 
+        attendance_date: todayStr
+      }
+    });
+
+    // 5. Today's Revenue (POS + Online)
+    // Payments use 'transaction_date' (DATETIME), so [Op.between] works here
+    const todayRevenue = await Payment.sum('amount', {
+      where: { 
+        status: { [Op.or]: ['VERIFIED', 'COMPLETED'] },
+        transaction_date: { [Op.between]: [startOfDay, endOfDay] }
+      }
+    }) || 0;
+
+    // 6. Recent Check-ins
+    // FIXED: Order by 'attendance_date' then 'check_in' (TIME)
+    const recentCheckins = await Attendance.findAll({
+      limit: 5,
+      order: [
+        ['attendance_date', 'DESC'],
+        ['check_in', 'DESC']
+      ],
+      include: [{ 
+        model: User, 
+        attributes: ['name', 'member_code', 'email'] 
+      }]
+    });
+
+    res.json({
+      totalMembers,
+      todayAttendance,
+      todayRevenue: Math.round(todayRevenue),
+      recentCheckins
+    });
+
+  } catch (err) {
+    console.error("Staff Stats Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
