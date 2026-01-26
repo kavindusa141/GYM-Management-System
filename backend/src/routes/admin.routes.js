@@ -8,6 +8,8 @@ const {
   getAnalytics 
 } = require("../controllers/dashboard.controller");
 
+
+
 const { 
   getAllMembers, 
   addMember, 
@@ -19,7 +21,8 @@ const {
   getEmployees, 
   createEmployee, 
   getAllTrainers,
-  deleteEmployee 
+  deleteEmployee
+ 
 } = require("../controllers/admin.controller"); 
 
 const { getReportsData } = require("../controllers/reports.controller");
@@ -56,6 +59,9 @@ router.get("/trainers", verifyToken, allowRoles("ADMIN", "STAFF"), getAllTrainer
 router.delete("/users/:id", verifyToken, allowRoles("ADMIN"), deleteEmployee);
 
 // --- REPORTS ---
-router.get("/reports", verifyToken, allowRoles("ADMIN"), getReportsData);
+router.get("/reports", verifyToken, allowRoles("ADMIN", "STAFF"), getReportsData);
+
+
+
 
 module.exports = router;

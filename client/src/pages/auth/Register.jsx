@@ -2,7 +2,7 @@ import { useState } from 'react';
 import api from '../../services/api';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Lock, Phone, ArrowRight, Trophy, CheckCircle, Key } from 'lucide-react';
+import { User, Mail, Lock, Phone, ArrowRight, Trophy, CheckCircle, Key, X } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -59,7 +59,17 @@ export default function Register() {
       </div>
 
       <div className="relative z-10 w-full max-w-2xl px-4 animate-fade-in">
-        <div className="glass-card rounded-2xl overflow-hidden shadow-2xl">
+        <div className="glass-card rounded-2xl overflow-hidden shadow-2xl relative">
+          
+          {/* --- NEW: Close Button (Go to Landing Page) --- */}
+          <Link 
+            to="/" 
+            className="absolute top-4 right-4 p-2 rounded-full bg-gray-800/50 hover:bg-gray-700 text-gray-400 hover:text-white transition-all z-20"
+            title="Close"
+          >
+            <X size={20} />
+          </Link>
+
           <div className="p-8 md:p-12">
             
             <div className="text-center mb-10">
@@ -128,10 +138,18 @@ export default function Register() {
                   </div>
                 </div>
 
-                <div className="md:col-span-2 mt-4">
+                <div className="md:col-span-2 mt-4 space-y-6">
                   <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-xl shadow-lg transform transition hover:-translate-y-0.5">
                     {loading ? 'Processing...' : 'Next Step'}
                   </button>
+
+                  {/* --- NEW: Switch to Login --- */}
+                  <p className="text-center text-gray-400 text-sm">
+                    Already have an account?{' '}
+                    <Link to="/login" className="text-blue-400 hover:text-blue-300 font-semibold hover:underline transition-all">
+                      Sign In
+                    </Link>
+                  </p>
                 </div>
               </form>
 

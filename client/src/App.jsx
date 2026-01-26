@@ -54,6 +54,8 @@ import MarkAttendance from './pages/staff/MarkAttendance';
 import RegisterMember from './pages/staff/RegisterMember'; 
 import PointOfSale from './pages/staff/PointOfSale';
 import StaffSettings from './pages/staff/Settings';
+import StaffReports from './pages/staff/Reports';
+
 
 
 // Protected Route Wrapper
@@ -155,6 +157,7 @@ export default function App() {
         <Route path="register" element={<RegisterMember />} />
         <Route path="pos" element={<PointOfSale />} />
         <Route path="classes" element={<ManageClasses />} />
+        <Route path="reports" element={<StaffReports />} />
         <Route path="settings" element={<StaffSettings />} />
       </Route>
 

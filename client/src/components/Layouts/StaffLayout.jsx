@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, QrCode, LogOut, Menu, X, Settings, Users, UserPlus, CreditCard, Calendar
+  LayoutDashboard, QrCode, LogOut, Menu, X, Settings, Users, UserPlus, CreditCard, Calendar, BarChart2
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -83,6 +83,13 @@ export default function StaffLayout() {
             <Calendar size={18} />
             Manage Classes
           </Link>
+
+          <Link to="/staff/reports" className={getLinkClass('/staff/reports')}>
+            <BarChart2 size={18} />
+            Analytics & Reports
+          </Link>
+
+         
           
           {/* Note: If you add more pages later like "Member Lookup", add them here */}
           <div className="pt-5 pb-2 px-4 text-[10px] font-bold text-slate-600 uppercase tracking-wider">

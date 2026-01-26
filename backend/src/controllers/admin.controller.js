@@ -3,9 +3,12 @@ const MemberProfile = require("../models/MemberProfile");
 const bcrypt = require("bcrypt");
 const { Op } = require("sequelize");
 
-// 1. Get All Members (Only Active/Non-Deleted)
+// 1. Get All Members
 exports.getAllMembers = async (req, res) => {
   try {
+    const UserSubscription = require("../models/UserSubscription");
+    const MembershipPlan = require("../models/MembershipPlan");
+
     const members = await User.findAll({
       where: { 
         role: 'MEMBER',
@@ -14,22 +17,63 @@ exports.getAllMembers = async (req, res) => {
           { is_deleted: null }
         ]
       },
+      // We only fetch 'status' (Database column)
       attributes: ['user_id', 'member_code', 'name', 'email', 'phone', 'status', 'created_at'],
       include: [
         { 
           model: MemberProfile, 
           attributes: ['profile_id'] 
+        },
+        {
+          model: UserSubscription,
+          attributes: ['status', 'end_date', 'plan_id'],
+          include: [{ model: MembershipPlan, attributes: ['name'] }],
+          order: [['end_date', 'DESC']],
+          limit: 1 
         }
       ],
       order: [['user_id', 'DESC']]
     });
-    res.json(members);
+
+    const processedMembers = members.map(member => {
+      const latestSub = member.UserSubscriptions && member.UserSubscriptions[0];
+      let subStatus = 'NO_PLAN';
+      let planName = 'N/A';
+      let expiryDate = null;
+
+      if (latestSub) {
+        const today = new Date();
+        const endDate = new Date(latestSub.end_date);
+        
+        planName = latestSub.MembershipPlan?.name || 'Unknown Plan';
+        expiryDate = latestSub.end_date;
+
+        if (endDate >= today && latestSub.status === 'ACTIVE') {
+          subStatus = 'ACTIVE';
+        } else {
+          subStatus = 'EXPIRED';
+        }
+      }
+
+      return {
+        ...member.toJSON(),
+        subscription_status: subStatus,
+        current_plan: planName,
+        expiry_date: expiryDate,
+        // LOGIC: If status is 1 (true), we tell Frontend "is_verified: true"
+        // This keeps the UI working without changing the database.
+        is_verified: member.status === true 
+      };
+    });
+
+    res.json(processedMembers);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Get Members Error:", err);
+    res.status(500).json({ message: err.message });
   }
 };
 
-// 2. Add Member (Admin Feature)
+// 2. Add Member (FIXED: Uses 'status' only)
 exports.addMember = async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
@@ -45,13 +89,15 @@ exports.addMember = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // ✅ FIXED: We removed 'is_verified'.
+    // We set 'status: true' which means the user is Active/Verified.
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
       phone,
       role: "MEMBER",
-      status: true
+      status: true // <--- TRUE means Verified
     });
 
     const customId = `RFK-M-${newUser.user_id}`;
@@ -60,7 +106,8 @@ exports.addMember = async (req, res) => {
     res.status(201).json({ message: "Member added successfully", user: newUser });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Add Member Error:", err);
+    res.status(500).json({ message: err.message }); 
   }
 };
 
@@ -82,16 +129,16 @@ exports.deleteMember = async (req, res) => {
       is_deleted: true,
       deleted_at: new Date(),
       deletion_reason: 'Deleted by admin',
-      status: false
+      status: false // Set status to false (Inactive)
     });
 
     res.json({ message: "Member deleted successfully." });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// 4. Get Employees (Staff & Trainers)
+// 4. Get Employees
 exports.getEmployees = async (req, res) => {
   try {
     const employees = await User.findAll({
@@ -106,7 +153,7 @@ exports.getEmployees = async (req, res) => {
     });
     res.json(employees);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -146,11 +193,11 @@ exports.createEmployee = async (req, res) => {
     res.status(201).json({ message: `${role} created successfully`, member_code: customId });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// 6. Get All Trainers (Dropdowns)
+// 6. Get All Trainers
 exports.getAllTrainers = async (req, res) => {
   try {
     const trainers = await User.findAll({
@@ -165,12 +212,11 @@ exports.getAllTrainers = async (req, res) => {
     });
     res.json(trainers);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// 7. NEW: Soft Delete Employee (Staff/Trainer)
-// This fixes the missing functionality for deleting Staff/Trainers
+// 7. Soft Delete Employee
 exports.deleteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
@@ -180,12 +226,10 @@ exports.deleteEmployee = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Ensure we are deleting the correct roles
     if (!["STAFF", "TRAINER"].includes(user.role)) {
       return res.status(400).json({ message: "This endpoint is for deleting Staff or Trainers only." });
     }
 
-    // Soft Delete logic
     await user.update({
       is_deleted: true,
       deleted_at: new Date(),
@@ -195,7 +239,7 @@ exports.deleteEmployee = async (req, res) => {
 
     res.json({ message: "Employee removed successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -210,7 +254,7 @@ exports.getDeletedMembers = async (req, res) => {
     });
     res.json(deletedMembers);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -227,7 +271,7 @@ exports.getDeletedMemberPaymentHistory = async (req, res) => {
     });
     res.json({ payment_history: paymentHistory });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -244,7 +288,7 @@ exports.getDeletedMemberSubscriptionHistory = async (req, res) => {
     });
     res.json({ subscription_history: subscriptionHistory });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -258,6 +302,6 @@ exports.getDeletedMemberAttendanceHistory = async (req, res) => {
     });
     res.json({ attendance_history: attendanceHistory });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
