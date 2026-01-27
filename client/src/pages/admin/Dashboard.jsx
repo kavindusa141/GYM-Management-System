@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import LiveClock from '../../components/Shared/LiveClock';
 import { 
-  Users, DollarSign, Activity, Calendar, TrendingUp, UserPlus, 
+  Users, Banknote, Activity, Calendar, TrendingUp, UserPlus, 
   ArrowRight, CreditCard, Dumbbell 
 } from 'lucide-react';
 import { 
@@ -77,13 +77,13 @@ export default function AdminDashboard() {
           title="Total Members" 
           value={stats.totalMembers} 
           icon={<Users className="w-5 h-5" />} 
-          trend="+12% this month"
+          trend="Monthly Growth" 
           color="blue"
         />
         <StatCard 
           title="Total Revenue" 
           value={formatCurrency(stats.totalRevenue)} 
-          icon={<DollarSign className="w-5 h-5" />} 
+          icon={<Banknote className="w-5 h-5" />} 
           trend="vs last month"
           color="green"
         />
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Server Load</span>
-                <span className="text-blue-400 font-bold">12%</span>
+                <span className="text-blue-400 font-bold">Stable</span>
               </div>
             </div>
           </div>

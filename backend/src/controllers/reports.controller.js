@@ -3,122 +3,129 @@ const sequelize = require("../config/db");
 const Payment = require("../models/Payment");
 const Attendance = require("../models/Attendance");
 const MembershipPlan = require("../models/MembershipPlan");
-const UserSubscription = require("../models/UserSubscription"); // Correct Import
-
-// Helper to format dates YYYY-MM
-const getMonthYear = (dateStr) => {
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
+const UserSubscription = require("../models/UserSubscription");
 
 exports.getReportsData = async (req, res) => {
-  // Initialize default empty structure so frontend doesn't crash
-  const responseData = { financial: [], attendance: [], membership: [] };
-
   try {
-    // ==========================================
-    // 1. FINANCIAL REPORT (JS Aggregation)
-    // ==========================================
-    try {
-      // Fetch raw payments for last 6 months
-      const payments = await Payment.findAll({
-        where: {
-          transaction_date: { [Op.gte]: new Date(new Date() - 180 * 24 * 60 * 60 * 1000) }
-        },
-        attributes: ['amount', 'transaction_date'],
-        raw: true
-      });
-
-      // Group by Month in Javascript
-      const financialMap = {};
-      payments.forEach(p => {
-        const month = getMonthYear(p.transaction_date);
-        if (!financialMap[month]) financialMap[month] = { total_revenue: 0, transaction_count: 0 };
-        financialMap[month].total_revenue += parseFloat(p.amount);
-        financialMap[month].transaction_count += 1;
-      });
-
-      // Convert to Array for Recharts
-      responseData.financial = Object.keys(financialMap).sort().map(month => ({
-        month,
-        total_revenue: financialMap[month].total_revenue,
-        transaction_count: financialMap[month].transaction_count
-      }));
-
-    } catch (finError) {
-      console.error("Financial Report Error:", finError.message);
-    }
+    // 1. Dynamic Date Filtering
+    const { startDate, endDate } = req.query;
+    // Default: Last 30 days
+    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
+    const end = endDate ? new Date(endDate) : new Date();
+    
+    // Adjust end date to include the full day
+    const endOfDay = new Date(end);
+    endOfDay.setHours(23, 59, 59, 999);
 
     // ==========================================
-    // 2. ATTENDANCE REPORT (JS Aggregation)
+    // 1. FINANCIAL REPORT
     // ==========================================
-    try {
-      // Fetch raw attendance for last 7 days
-      const attendance = await Attendance.findAll({
-        where: {
-          attendance_date: { [Op.gte]: new Date(new Date() - 7 * 24 * 60 * 60 * 1000) }
-        },
-        attributes: ['attendance_date'],
-        raw: true
-      });
+    const financialData = await Payment.findAll({
+      attributes: [
+        [sequelize.fn('DATE_FORMAT', sequelize.col('transaction_date'), '%Y-%m-%d'), 'date'],
+        [sequelize.fn('SUM', sequelize.col('amount')), 'total_revenue'],
+        [sequelize.fn('COUNT', sequelize.col('payment_id')), 'transaction_count']
+      ],
+      where: {
+        transaction_date: { [Op.between]: [start, endOfDay] },
+        status: { [Op.or]: ['VERIFIED', 'COMPLETED'] }
+      },
+      group: [sequelize.fn('DATE_FORMAT', sequelize.col('transaction_date'), '%Y-%m-%d')],
+      order: [[sequelize.literal('date'), 'ASC']],
+      raw: true
+    });
 
-      // Group by Date in Javascript
-      const attMap = {};
-      attendance.forEach(a => {
-        const date = a.attendance_date; 
-        if (!attMap[date]) attMap[date] = 0;
-        attMap[date] += 1;
-      });
-
-      responseData.attendance = Object.keys(attMap).sort().map(date => ({
-        date,
-        count: attMap[date]
-      }));
-
-    } catch (attError) {
-      console.error("Attendance Report Error:", attError.message);
-    }
+    const paymentMethods = await Payment.findAll({
+      attributes: [
+        'payment_method',
+        [sequelize.fn('SUM', sequelize.col('amount')), 'amount']
+      ],
+      where: {
+        transaction_date: { [Op.between]: [start, endOfDay] },
+        status: { [Op.or]: ['VERIFIED', 'COMPLETED'] }
+      },
+      group: ['payment_method'],
+      raw: true
+    });
 
     // ==========================================
-    // 3. MEMBERSHIP REPORT (Count Plans)
+    // 2. ATTENDANCE REPORT (Enhanced)
     // ==========================================
-    try {
-      // FIX: Use UserSubscription instead of UserMembership
-      const memberships = await UserSubscription.findAll({
-        where: { status: 'ACTIVE' },
-        attributes: ['plan_id'], // Ensure your DB has plan_id column or update this key
-        raw: true
-      });
+    // Daily Trend
+    const attendanceData = await Attendance.findAll({
+      attributes: [
+        'attendance_date',
+        [sequelize.fn('COUNT', sequelize.col('attendance_id')), 'count']
+      ],
+      where: {
+        attendance_date: { [Op.between]: [start, end] }
+      },
+      group: ['attendance_date'],
+      order: [['attendance_date', 'ASC']],
+      raw: true
+    });
 
-      // Get plan names
-      const plans = await MembershipPlan.findAll({ raw: true });
-      const planLookup = {};
-      plans.forEach(p => {
-        planLookup[p.plan_id] = p.name;
-      });
+    // Peak Hours (e.g., 17:00 has 50 check-ins)
+    const peakHours = await Attendance.findAll({
+      attributes: [
+        [sequelize.fn('HOUR', sequelize.col('check_in')), 'hour'],
+        [sequelize.fn('COUNT', sequelize.col('attendance_id')), 'count']
+      ],
+      where: {
+        attendance_date: { [Op.between]: [start, end] }
+      },
+      group: [sequelize.fn('HOUR', sequelize.col('check_in'))],
+      order: [[sequelize.literal('hour'), 'ASC']],
+      raw: true
+    });
 
-      // Count members per plan
-      const memMap = {};
-      memberships.forEach(m => {
-        const planName = planLookup[m.plan_id] || "Unknown Plan";
-        if (!memMap[planName]) memMap[planName] = 0;
-        memMap[planName] += 1;
-      });
+    // ==========================================
+    // 3. MEMBERSHIP DISTRIBUTION
+    // ==========================================
+    const memberships = await UserSubscription.findAll({
+      where: { status: 'ACTIVE' },
+      attributes: [
+        [sequelize.col('MembershipPlan.name'), 'plan_name'],
+        [sequelize.col('MembershipPlan.price'), 'plan_price'],
+        [sequelize.fn('COUNT', sequelize.col('UserSubscription.subscription_id')), 'member_count']
+      ],
+      include: [{
+        model: MembershipPlan,
+        attributes: [] 
+      }],
+      group: ['MembershipPlan.name', 'MembershipPlan.price'],
+      raw: true
+    });
 
-      responseData.membership = Object.keys(memMap).map(name => ({
-        plan_name: name,
-        member_count: memMap[name]
-      }));
-
-    } catch (memError) {
-      console.error("Membership Report Error:", memError.message);
-    }
-
-    // Send collected data
-    res.json(responseData);
+    // Response
+    res.json({
+      financial: financialData.map(d => ({
+        date: d.date,
+        total_revenue: parseFloat(d.total_revenue),
+        transaction_count: parseInt(d.transaction_count)
+      })),
+      payment_methods: paymentMethods.map(p => ({
+        name: p.payment_method || 'Unknown',
+        value: parseFloat(p.amount)
+      })),
+      attendance: attendanceData.map(d => ({
+        date: d.attendance_date,
+        count: parseInt(d.count)
+      })),
+      peak_hours: peakHours.map(h => ({
+        hour: `${h.hour}:00`,
+        count: parseInt(h.count)
+      })),
+      membership: memberships.map(m => ({
+        plan_name: m.plan_name || 'Legacy',
+        plan_price: parseFloat(m.plan_price || 0),
+        member_count: parseInt(m.member_count),
+        estimated_value: parseFloat(m.plan_price || 0) * parseInt(m.member_count)
+      }))
+    });
 
   } catch (err) {
-    console.error("General Reports Error:", err);
+    console.error("Reports Error:", err);
     res.status(500).json({ error: "Failed to generate reports" });
   }
 };

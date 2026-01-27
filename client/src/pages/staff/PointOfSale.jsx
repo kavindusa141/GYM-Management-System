@@ -447,9 +447,12 @@ export default function PointOfSale() {
                   <div key={pay.payment_id} className="p-5 hover:bg-gray-50 transition-colors flex justify-between items-center">
                     
                     <div className="flex gap-4 items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm shrink-0
-                        ${pay.payment_method === 'CASH' ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600'}`}>
-                        <DollarSign className="w-5 h-5" />
+                      {/* UPDATED: Initial Circle instead of Dollar Icon */}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm shrink-0 font-bold text-lg border-2
+                        ${pay.payment_method === 'CASH' 
+                          ? 'bg-green-50 text-green-600 border-green-100' 
+                          : 'bg-purple-50 text-purple-600 border-purple-100'}`}>
+                        {pay.User?.name?.charAt(0).toUpperCase() || 'U'}
                       </div>
                       
                       <div>
@@ -499,9 +502,4 @@ export default function PointOfSale() {
 
     </div>
   );
-}
-
-// Helper Icon
-function DollarSign({className}) {
-    return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
 }

@@ -152,9 +152,13 @@ export default function MemberDashboard() {
                   darkTheme
                 />
                 <div className="hidden md:flex flex-col justify-end">
-                  <button className="text-sm font-bold text-gray-400 hover:text-white flex items-center gap-1 transition-colors">
+                  {/* --- MODIFICATION HERE: Changed button to Link --- */}
+                  <Link 
+                    to="/member/payment" 
+                    className="text-sm font-bold text-gray-400 hover:text-white flex items-center gap-1 transition-colors"
+                  >
                     View Billing <ArrowRight size={14} />
-                  </button>
+                  </Link>
                 </div>
               </div>
             ) : (

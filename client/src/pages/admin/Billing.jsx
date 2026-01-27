@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
-  DollarSign, FileText, Receipt, Upload, CheckCircle, Calendar, 
+  FileText, Receipt, Upload, CheckCircle, Calendar, 
   Search, ChevronDown, Filter, X, XCircle
 } from 'lucide-react';
 
@@ -43,7 +43,7 @@ export default function Billing() {
     try {
       const [membersRes, plansRes, paymentsRes] = await Promise.all([
         api.get('/admin/members'),
-        api.get('/memberships'), // UPDATED: Correct endpoint
+        api.get('/memberships'),
         api.get('/payments')
       ]);
       setMembers(membersRes.data);
@@ -86,6 +86,7 @@ export default function Billing() {
     const userName = (pay.User?.name || '').toLowerCase();
     const userCode = (pay.User?.member_code || '').toLowerCase();
     const search = historySearch.toLowerCase();
+    
     // Use transaction_date instead of created_at
     const payDate = new Date(pay.transaction_date || pay.createdAt).toISOString().slice(0, 7);
 
@@ -150,7 +151,6 @@ export default function Billing() {
       if (formData.reference_number) data.append('reference_number', formData.reference_number);
       if (slipFile) data.append('slip_image', slipFile);
 
-      // UPDATED: Correct Endpoint for Admin Payments
       await api.post('/payments/admin-pay', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -291,8 +291,8 @@ export default function Billing() {
               <button type="submit" disabled={loading} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg mt-2 flex justify-center items-center gap-2 transition-all active:scale-95">
                 {loading ? "Processing..." : (
                   <>
-                    <DollarSign className="w-5 h-5" /> 
-                    {formData.payment_method === 'CASH' ? 'Collect Cash' : 'Verify & Save'}
+                    <CheckCircle className="w-5 h-5" /> 
+                    {formData.payment_method === 'CASH' ? 'Proceed Payment' : 'Verify & Save'}
                   </>
                 )}
               </button>
@@ -384,9 +384,12 @@ export default function Billing() {
                   <div key={pay.payment_id} className="p-5 hover:bg-gray-50 transition-colors flex justify-between items-start">
                     
                     <div className="flex gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mt-1 shrink-0 shadow-sm
-                        ${pay.payment_method === 'CASH' ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600'}`}>
-                        <DollarSign className="w-5 h-5" />
+                      {/* UPDATED: Initial Circle instead of Dollar Icon */}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mt-1 shrink-0 shadow-sm font-bold text-lg border-2
+                        ${pay.payment_method === 'CASH' 
+                          ? 'bg-green-50 text-green-600 border-green-100' 
+                          : 'bg-purple-50 text-purple-600 border-purple-100'}`}>
+                        {pay.User?.name?.charAt(0).toUpperCase() || 'U'}
                       </div>
                       
                       <div>
@@ -428,9 +431,9 @@ export default function Billing() {
                                <CheckCircle className="w-3 h-3" /> Verified
                             </span>
                             <a
-                               href={`/receipt/${pay.payment_id}`}
+                              href={`/receipt/${pay.payment_id}`}
                               className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
->
+                            >
                               <Receipt className="w-3 h-3" />
                                    View Receipt
                                 </a>
