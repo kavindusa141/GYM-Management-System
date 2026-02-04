@@ -59,9 +59,11 @@ export default function MemberPayment() {
   const handlePay = async (e) => {
     e.preventDefault();
 
+    // --- WARNING CHECK ---
+    // If member is active AND warning hasn't been shown/confirmed yet
     if (memberStats?.active && !showReplaceWarning) {
       setShowReplaceWarning(true);
-      return;
+      return; // Stop here, show the warning UI
     }
 
     const payload = new FormData();
@@ -84,7 +86,7 @@ export default function MemberPayment() {
 
       setSelectedPlan(null);
       setFile(null);
-      setShowReplaceWarning(false);
+      setShowReplaceWarning(false); // Reset warning
       fetchData();
       setActiveTab('HISTORY'); // Switch to history tab to show the new record
 
@@ -193,7 +195,13 @@ export default function MemberPayment() {
                     </div>
 
                     <button
-                      onClick={() => setSelectedPlan(plan)}
+                      onClick={() => {
+                        setSelectedPlan(plan);
+                        // Reset warning when opening a new plan selection
+                        if (memberStats?.active) {
+                            setShowReplaceWarning(false); 
+                        }
+                      }}
                       className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/20 group-hover:shadow-blue-600/30"
                     >
                       Choose Plan
@@ -314,7 +322,7 @@ export default function MemberPayment() {
 
                   <div className="flex gap-3">
                     <button
-                      type="button"
+                      type="button" // Important: type="button" to prevent form submission loop
                       onClick={handlePay}
                       className="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-sm"
                     >
@@ -373,16 +381,20 @@ export default function MemberPayment() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setSelectedPlan(null)}
+                  onClick={() => {
+                      setSelectedPlan(null);
+                      setShowReplaceWarning(false);
+                  }}
                   className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all"
+                  disabled={showReplaceWarning} // Disable main button while warning is active
+                  className={`flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all ${showReplaceWarning ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  Pay Rs. {selectedPlan.price}
+                  Pay Rs. {parseInt(selectedPlan.price).toLocaleString()}
                 </button>
               </div>
 

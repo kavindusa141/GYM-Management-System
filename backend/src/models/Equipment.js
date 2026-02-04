@@ -29,8 +29,8 @@ const Equipment = sequelize.define("Equipment", {
   }
 }, {
   tableName: "equipment",
-  timestamps: true,    // We want timestamps
-  underscored: true    // <--- THIS IS THE FIX. It maps createdAt -> created_at
+  timestamps: true,   
+  underscored: true    
 });
 
 module.exports = Equipment;

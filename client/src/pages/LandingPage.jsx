@@ -189,11 +189,11 @@ export default function LandingPage() {
             </div>
 
             <div className="pt-10 flex items-center gap-8 border-t border-white/10">
-              <div><p className="text-3xl font-black text-white">2k+</p><p className="text-xs text-slate-500 font-bold uppercase">Members</p></div>
+              <div><p className="text-3xl font-black text-white">50+</p><p className="text-xs text-slate-500 font-bold uppercase">Members</p></div>
               <div className="w-px h-10 bg-white/10"></div>
-              <div><p className="text-3xl font-black text-white">50+</p><p className="text-xs text-slate-500 font-bold uppercase">Trainers</p></div>
+              <div><p className="text-3xl font-black text-white">5+</p><p className="text-xs text-slate-500 font-bold uppercase">Trainers</p></div>
               <div className="w-px h-10 bg-white/10"></div>
-              <div><p className="text-3xl font-black text-white">24/7</p><p className="text-xs text-slate-500 font-bold uppercase">Access</p></div>
+              <div><p className="text-3xl font-black text-white">6AM - 10PM</p><p className="text-xs text-slate-500 font-bold uppercase">Access</p></div>
             </div>
           </div>
         </div>

@@ -25,11 +25,11 @@ const GymClass = sequelize.define("GymClass", {
     allowNull: false
   },
   start_time: {
-    type: DataTypes.TIME, // Stores "14:30:00"
+    type: DataTypes.TIME, 
     allowNull: false
   },
   duration: {
-    type: DataTypes.INTEGER, // In minutes (e.g., 60)
+    type: DataTypes.INTEGER, 
     defaultValue: 60
   },
   capacity: {

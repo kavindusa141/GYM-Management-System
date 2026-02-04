@@ -82,8 +82,8 @@ export default function StaffMarkAttendance() {
       
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Front Desk Kiosk</h1>
-          <p className="text-gray-500">Manage daily check-ins and kiosk settings.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Front Desk QR</h1>
+          <p className="text-gray-500">Manage daily check-ins and QR settings.</p>
         </div>
 
         {/* --- TABS (Added for Staff) --- */}
@@ -98,7 +98,7 @@ export default function StaffMarkAttendance() {
             onClick={() => setActiveTab('QR')}
             className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'QR' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            <QrCode className="w-4 h-4"/> QR Kiosk Display
+            <QrCode className="w-4 h-4"/> QR Display
           </button>
         </div>
       </div>
@@ -183,7 +183,7 @@ export default function StaffMarkAttendance() {
           </div>
           <div className="mt-6 flex items-center gap-2 text-xs font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            Live Kiosk Active
+            Live QR Active
           </div>
         </div>
       )}

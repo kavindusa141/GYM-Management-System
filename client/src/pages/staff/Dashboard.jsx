@@ -122,7 +122,7 @@ export default function StaffDashboard() {
             <CreditCard size={20} />
           </div>
           <div>
-            <span className="font-bold block text-sm">POS System</span>
+            <span className="font-bold block text-sm">Payment System</span>
             <span className="text-xs text-slate-400">Process Payment</span>
           </div>
         </Link>
@@ -190,7 +190,7 @@ export default function StaffDashboard() {
            <div>
              <h3 className="text-2xl font-black mb-2">Staff Notice</h3>
              <p className="text-slate-400 text-sm leading-relaxed">
-               Please ensure all members scan their QR code upon entry. If a membership is expired, direct them to the POS counter for renewal.
+               Please ensure all members scan their QR code upon entry. If a membership is expired, direct them to the Payment counter for renewal.
              </p>
            </div>
 
