@@ -2,6 +2,8 @@ const WorkoutPlan = require("../models/WorkoutPlan");
 const WorkoutExercise = require("../models/WorkoutExercise");
 const WorkoutLog = require("../models/WorkoutLog");
 const User = require("../models/User");
+const UserSubscription = require("../models/UserSubscription"); // Added
+const MembershipPlan = require("../models/MembershipPlan");     // Added
 
 // 1. Create a Plan
 exports.createPlan = async (req, res) => {
@@ -9,6 +11,25 @@ exports.createPlan = async (req, res) => {
     // Destructure start_date and end_date
     const { member_id, name, description, exercises, start_date, end_date } = req.body;
     
+    // --- NEW VALIDATION START ---
+    // Check if the member has an active subscription that allows Personal Trainer
+    const sub = await UserSubscription.findOne({
+      where: { user_id: member_id, status: 'ACTIVE' },
+      include: [{ model: MembershipPlan }]
+    });
+
+    if (!sub) {
+      return res.status(400).json({ message: "This member does not have an active subscription." });
+    }
+
+    // Check the 'includes_trainer' flag we added to the MembershipPlan model
+    if (!sub.MembershipPlan.includes_trainer) {
+      return res.status(403).json({ 
+        message: "This member's current package does not include Personal Trainer access." 
+      });
+    }
+    // --- NEW VALIDATION END ---
+
     const newPlan = await WorkoutPlan.create({
       member_id,
       trainer_id: req.user.id,

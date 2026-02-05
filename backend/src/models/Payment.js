@@ -42,6 +42,11 @@ const Payment = sequelize.define("Payment", {
   status: {
     type: DataTypes.ENUM('COMPLETED', 'PENDING', 'VERIFIED', 'FAILED'),
     defaultValue: 'PENDING'
+  },
+  // --- NEW FIELD ---
+  rejection_reason: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: "payments",

@@ -1,16 +1,95 @@
 const Attendance = require("../models/Attendance");
 const User = require("../models/User");
+const UserSubscription = require("../models/UserSubscription");
+const MembershipPlan = require("../models/MembershipPlan");
+const ClassBooking = require("../models/ClassBooking"); 
 const crypto = require("crypto"); 
 const { Op } = require("sequelize");
 
 // --- HELPER: Calculate Duration in Minutes ---
 const calculateDuration = (startTime, endTime) => {
-  // Create dummy dates to compare times
+  // Create dummy dates to compare times (Treating strings as UTC ensures correct diff)
   const start = new Date(`1970-01-01T${startTime}Z`);
   const end = new Date(`1970-01-01T${endTime}Z`);
   const diffMs = end - start;
   // Return minutes (rounded)
   return Math.round(diffMs / 60000); 
+};
+
+// --- NEW HELPER: Validate Entry Logic (Time & Limits) ---
+const validateEntry = async (userId) => {
+  // 1. Get Active Subscription
+  // This ensures we validate against the member's CURRENT plan
+  const sub = await UserSubscription.findOne({
+    where: { user_id: userId, status: 'ACTIVE' },
+    include: [{ model: MembershipPlan }]
+  });
+
+  if (!sub) return { valid: false, message: "No active membership found." };
+  
+  const plan = sub.MembershipPlan;
+  const now = new Date();
+
+  // ---------------------------------------------------------
+  // VALIDATION 1: ACCESS TIME (Dynamic from Plan)
+  // ---------------------------------------------------------
+  // Get current time in strictly 24-hour format (HH:MM:SS)
+  const currentTimeStr = now.toLocaleTimeString('en-GB', { hour12: false }); 
+  
+  // Check if the plan has time restrictions defined in the database
+  if (plan.access_start_time && plan.access_end_time) {
+    // Compare string values: e.g. "19:00:00" > "17:00:00"
+    if (currentTimeStr < plan.access_start_time || currentTimeStr > plan.access_end_time) {
+      return { 
+        valid: false, 
+        message: `Access denied. Your plan allows entry between ${plan.access_start_time} and ${plan.access_end_time}.` 
+      };
+    }
+  }
+
+  // ---------------------------------------------------------
+  // VALIDATION 2: WEEKLY VISIT LIMIT (Attendance + Bookings)
+  // ---------------------------------------------------------
+  if (plan.visit_limit_per_week !== null) {
+    // Calculate start (Sunday) and end (Saturday) of the current week
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Go back to Sunday
+    startOfWeek.setHours(0,0,0,0);
+    
+    const endOfWeek = new Date(now);
+    endOfWeek.setDate(now.getDate() - now.getDay() + 6); // Go forward to Saturday
+    endOfWeek.setHours(23,59,59,999);
+
+    // A. Count Physical Visits (Attendance)
+    const visitsThisWeek = await Attendance.count({
+      where: {
+        member_id: userId,
+        attendance_date: { [Op.between]: [startOfWeek, endOfWeek] },
+        status: { [Op.ne]: 'ABSENT' } // Only count actual visits
+      }
+    });
+
+    // B. Count Class Bookings (Confirmed)
+    const bookingsThisWeek = await ClassBooking.count({
+      where: {
+          user_id: userId,
+          status: 'CONFIRMED',
+          booking_date: { [Op.between]: [startOfWeek, endOfWeek] }
+      }
+    });
+
+    // C. Validate Total Usage
+    const totalUsage = visitsThisWeek + bookingsThisWeek;
+
+    if (totalUsage >= plan.visit_limit_per_week) {
+      return { 
+        valid: false, 
+        message: `Weekly limit reached (${plan.visit_limit_per_week} visits/week). You have used ${visitsThisWeek} visits and ${bookingsThisWeek} class bookings.` 
+      };
+    }
+  }
+
+  return { valid: true };
 };
 
 // 1. MANUAL CHECK-IN / CHECK-OUT (Admin)
@@ -50,6 +129,13 @@ exports.markAttendance = async (req, res) => {
         message: `Check-out Successful! Duration: ${duration} mins`, 
         member: user.name 
       });
+    }
+
+    // --- VALIDATION: ONLY RUN BEFORE CHECK-IN ---
+    // This validates time and visit limits against the ACTIVE plan
+    const validation = await validateEntry(user.user_id);
+    if (!validation.valid) {
+      return res.status(403).json({ message: validation.message });
     }
 
     // --- CHECK IN LOGIC ---
@@ -163,6 +249,12 @@ exports.markAttendanceByQR = async (req, res) => {
       });
 
       return res.json({ message: `Goodbye! Session: ${duration} mins.` });
+    }
+
+    // --- VALIDATION: ONLY RUN BEFORE CHECK-IN ---
+    const validation = await validateEntry(userId);
+    if (!validation.valid) {
+      return res.status(403).json({ message: validation.message });
     }
 
     // --- CHECK IN LOGIC (QR) ---

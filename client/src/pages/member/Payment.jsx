@@ -2,10 +2,23 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
-  CreditCard, CheckCircle, XCircle, Clock, FileText, Package, LayoutList, History 
+  CreditCard, CheckCircle, XCircle, Clock, FileText, Package, LayoutList, History,
+  Dumbbell, Footprints, Calendar, Upload, AlertCircle, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
+// --- GRADIENT HELPER ---
+const getCardColor = (name = "") => {
+  const n = name.toLowerCase();
+  if (n.includes('gold')) return 'bg-gradient-to-br from-yellow-500 to-amber-600';
+  if (n.includes('silver')) return 'bg-gradient-to-br from-gray-400 to-slate-500';
+  if (n.includes('platinum')) return 'bg-gradient-to-br from-slate-300 to-gray-400 text-gray-800';
+  if (n.includes('bronze')) return 'bg-gradient-to-br from-orange-700 to-orange-900';
+  return 'bg-gradient-to-br from-blue-700 to-indigo-800';
+};
 
 export default function MemberPayment() {
   const { user } = useAuth();
@@ -21,6 +34,10 @@ export default function MemberPayment() {
   const [file, setFile] = useState(null);
   const [memberStats, setMemberStats] = useState(null);
   const [showReplaceWarning, setShowReplaceWarning] = useState(false);
+
+  // --- NEW: Re-upload State ---
+  const [reuploadId, setReuploadId] = useState(null);
+  const [reuploadFile, setReuploadFile] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -56,14 +73,13 @@ export default function MemberPayment() {
     return [];
   };
 
+  // --- Handle New Payment ---
   const handlePay = async (e) => {
     e.preventDefault();
 
-    // --- WARNING CHECK ---
-    // If member is active AND warning hasn't been shown/confirmed yet
     if (memberStats?.active && !showReplaceWarning) {
       setShowReplaceWarning(true);
-      return; // Stop here, show the warning UI
+      return; 
     }
 
     const payload = new FormData();
@@ -86,12 +102,33 @@ export default function MemberPayment() {
 
       setSelectedPlan(null);
       setFile(null);
-      setShowReplaceWarning(false); // Reset warning
+      setShowReplaceWarning(false);
       fetchData();
-      setActiveTab('HISTORY'); // Switch to history tab to show the new record
+      setActiveTab('HISTORY');
 
     } catch (err) {
       toast.error("Payment failed");
+    }
+  };
+
+  // --- NEW: Handle Re-upload ---
+  const handleReupload = async (e) => {
+    e.preventDefault();
+    if (!reuploadFile || !reuploadId) return;
+
+    const formData = new FormData();
+    formData.append('slip_image', reuploadFile);
+
+    try {
+        await api.post(`/payments/reupload/${reuploadId}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success("Slip re-uploaded successfully!");
+        setReuploadId(null);
+        setReuploadFile(null);
+        fetchData();
+    } catch (err) {
+        toast.error(err.response?.data?.message || "Re-upload failed");
     }
   };
 
@@ -141,8 +178,8 @@ export default function MemberPayment() {
                   key={plan.plan_id}
                   className="relative group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
                 >
-                  {/* Card Header */}
-                  <div className="bg-slate-900 p-6 text-white relative overflow-hidden shrink-0">
+                  {/* --- CARD HEADER --- */}
+                  <div className={`${getCardColor(plan.name)} p-6 text-white relative overflow-hidden shrink-0`}>
                     <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-transform duration-700">
                       <Package size={100} />
                     </div>
@@ -150,12 +187,12 @@ export default function MemberPayment() {
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="text-2xl font-black tracking-tight leading-tight">{plan.name}</h3>
-                          <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-1.5">
+                          <p className="text-white/80 text-xs font-bold uppercase tracking-wider mt-1.5">
                             {plan.duration_months} Month Access
                           </p>
                         </div>
                         {plan.duration_months >= 12 && (
-                          <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
+                          <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
                             Best Value
                           </span>
                         )}
@@ -175,29 +212,49 @@ export default function MemberPayment() {
                     </p>
                     
                     <div className="space-y-3 mb-8 flex-1">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Features</p>
+                       {plan.includes_trainer && (
+                          <div className="flex items-center text-sm font-bold text-gray-800">
+                            <Dumbbell className="w-5 h-5 text-emerald-500 mr-3 shrink-0"/> Personal Trainer Included
+                          </div>
+                       )}
+                       {plan.visit_limit_per_week ? (
+                         <div className="flex items-center text-sm font-bold text-gray-800">
+                           <Footprints className="w-5 h-5 text-blue-500 mr-3 shrink-0"/> {plan.visit_limit_per_week} Gym Visits per Week
+                         </div>
+                       ) : (
+                         <div className="flex items-center text-sm font-bold text-gray-800">
+                           <CheckCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0"/> Unlimited Gym Access
+                         </div>
+                       )}
+                       {plan.class_limit_per_week ? (
+                         <div className="flex items-center text-sm font-bold text-gray-800">
+                           <Calendar className="w-5 h-5 text-purple-500 mr-3 shrink-0"/> {plan.class_limit_per_week} Classes per Week
+                         </div>
+                       ) : (
+                         <div className="flex items-center text-sm font-bold text-gray-800">
+                           <CheckCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0"/> Unlimited Classes
+                         </div>
+                       )}
+                       {(plan.access_start_time && plan.access_end_time && plan.access_start_time !== '00:00:00') && (
+                         <div className="flex items-center text-sm font-bold text-gray-800">
+                           <Clock className="w-5 h-5 text-orange-500 mr-3 shrink-0"/> Access: {plan.access_start_time.slice(0,5)} - {plan.access_end_time.slice(0,5)}
+                         </div>
+                       )}
+
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider pt-2 border-t border-gray-100 mt-2">More Features</p>
                       <ul className="space-y-2.5">
                         {features.slice(0, 5).map((feature, idx) => (
-                          <li key={idx} className="flex items-start gap-3 text-sm text-gray-700 font-semibold">
-                            <CheckCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                          <li key={idx} className="flex items-start gap-3 text-sm text-gray-600 font-medium">
+                            <CheckCircle size={16} className="text-gray-400 shrink-0 mt-0.5" />
                             <span className="leading-tight">{feature}</span>
                           </li>
                         ))}
-                        {features.length > 5 && (
-                          <li className="text-xs text-blue-600 font-bold pl-7 pt-1">
-                            + {features.length - 5} more features
-                          </li>
-                        )}
-                        {features.length === 0 && (
-                          <li className="text-sm text-gray-400 italic">Standard gym access included.</li>
-                        )}
                       </ul>
                     </div>
 
                     <button
                       onClick={() => {
                         setSelectedPlan(plan);
-                        // Reset warning when opening a new plan selection
                         if (memberStats?.active) {
                             setShowReplaceWarning(false); 
                         }
@@ -246,6 +303,17 @@ export default function MemberPayment() {
                     
                     <div>
                       <p className="font-bold text-gray-900 text-lg">{pay.MembershipPlan?.name || 'Unknown Plan'}</p>
+                      
+                      {/* --- REJECTION REASON DISPLAY --- */}
+                      {pay.status === 'FAILED' && pay.rejection_reason && (
+                          <div className="mt-2 bg-red-50 text-red-700 text-xs p-2 rounded-lg border border-red-100 flex items-start gap-2 max-w-md">
+                              <AlertCircle size={14} className="mt-0.5 shrink-0"/>
+                              <span>
+                                  <span className="font-bold">Admin Note:</span> {pay.rejection_reason}
+                              </span>
+                          </div>
+                      )}
+
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 mt-1 font-mono">
                         <span>
                           {new Date(pay.transaction_date || pay.createdAt).toLocaleDateString('en-US', {
@@ -271,15 +339,20 @@ export default function MemberPayment() {
                           ? 'bg-orange-50 text-orange-700 border-orange-100'
                           : 'bg-red-50 text-red-700 border-red-100'
                         }`}>
-                        {pay.status === 'VERIFIED' || pay.status === 'COMPLETED'
-                          ? <CheckCircle size={12} />
-                          : pay.status === 'PENDING'
-                          ? <Clock size={12} />
-                          : <XCircle size={12} />
-                        }
                         {pay.status}
                       </span>
 
+                      {/* --- RETRY BUTTON --- */}
+                      {pay.status === 'FAILED' && pay.payment_method === 'TRANSFER' && (
+                          <button
+                            onClick={() => setReuploadId(pay.payment_id)}
+                            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                          >
+                            <RefreshCw className="w-3 h-3" /> Retry
+                          </button>
+                      )}
+
+                      {/* --- VIEW RECEIPT BUTTON --- */}
                       {(pay.status === 'VERIFIED' || pay.status === 'COMPLETED' || pay.status === 'SUCCESS') && (
                         <button
                           onClick={() => navigate(`/receipt/${pay.payment_id}`)}
@@ -322,7 +395,7 @@ export default function MemberPayment() {
 
                   <div className="flex gap-3">
                     <button
-                      type="button" // Important: type="button" to prevent form submission loop
+                      type="button" 
                       onClick={handlePay}
                       className="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-sm"
                     >
@@ -400,6 +473,35 @@ export default function MemberPayment() {
 
             </form>
           </div>
+        </div>
+      )}
+
+      {/* ===================== RE-UPLOAD MODAL ===================== */}
+      {reuploadId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Re-upload Payment Slip</h3>
+                <p className="text-sm text-gray-500 mb-4">Please upload a clear image of your valid bank transfer slip.</p>
+                
+                <form onSubmit={handleReupload}>
+                    <label className="block w-full cursor-pointer bg-blue-50 border-2 border-dashed border-blue-200 rounded-xl p-6 text-center hover:bg-blue-100 transition-colors mb-4">
+                        <Upload className="w-8 h-8 text-blue-500 mx-auto mb-2"/>
+                        <span className="text-sm font-bold text-blue-700">
+                            {reuploadFile ? reuploadFile.name : "Tap to choose file"}
+                        </span>
+                        <input type="file" className="hidden" accept="image/*" required onChange={(e) => setReuploadFile(e.target.files[0])} />
+                    </label>
+
+                    <div className="flex gap-3">
+                        <button type="button" onClick={() => { setReuploadId(null); setReuploadFile(null); }} className="flex-1 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200">
+                            Cancel
+                        </button>
+                        <button type="submit" className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">
+                            Upload
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
       )}
 

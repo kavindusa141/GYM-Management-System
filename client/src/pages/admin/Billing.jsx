@@ -3,7 +3,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
   FileText, Receipt, Upload, CheckCircle, Calendar, 
-  Search, ChevronDown, Filter, X, XCircle
+  Search, ChevronDown, Filter, X, XCircle, AlertCircle
 } from 'lucide-react';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -122,11 +122,24 @@ export default function Billing() {
     });
   };
 
-  // --- NEW: Verify Functionality ---
+  // --- UPDATED: Verify Functionality with Reason ---
   const handleVerify = async (id, action) => {
-    if(!window.confirm(`Are you sure you want to ${action} this payment?`)) return;
+    let reason = null;
+
+    if (action === 'REJECT') {
+        // Prompt for reason
+        reason = window.prompt("Please provide a reason for rejection (required):");
+        if (reason === null) return; // User cancelled
+        if (reason.trim() === "") {
+            toast.error("Rejection reason is required");
+            return;
+        }
+    } else {
+        if(!window.confirm(`Are you sure you want to approve this payment?`)) return;
+    }
+
     try {
-      await api.post(`/payments/verify/${id}`, { action });
+      await api.post(`/payments/verify/${id}`, { action, reason });
       toast.success(action === 'APPROVE' ? "Payment Verified" : "Payment Rejected");
       fetchData();
     } catch(err) { 
@@ -384,7 +397,7 @@ export default function Billing() {
                   <div key={pay.payment_id} className="p-5 hover:bg-gray-50 transition-colors flex justify-between items-start">
                     
                     <div className="flex gap-4">
-                      {/* UPDATED: Initial Circle instead of Dollar Icon */}
+                      {/* Initial Circle */}
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center mt-1 shrink-0 shadow-sm font-bold text-lg border-2
                         ${pay.payment_method === 'CASH' 
                           ? 'bg-green-50 text-green-600 border-green-100' 
@@ -411,6 +424,14 @@ export default function Billing() {
                         )}
                         {pay.reference_number && (
                            <p className="text-[10px] text-gray-400 font-mono mt-1">Ref: {pay.reference_number}</p>
+                        )}
+
+                        {/* --- REJECTION REASON DISPLAY (New) --- */}
+                        {pay.status === 'FAILED' && pay.rejection_reason && (
+                          <div className="mt-2 bg-red-50 text-red-700 text-xs p-2 rounded border border-red-100 flex items-start gap-2 max-w-xs">
+                              <AlertCircle size={14} className="mt-0.5 shrink-0"/>
+                              <span><span className="font-bold">Reason:</span> {pay.rejection_reason}</span>
+                          </div>
                         )}
                       </div>
                     </div>

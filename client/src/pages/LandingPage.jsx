@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Dumbbell, Users, Calendar, ArrowRight, CheckCircle, Star, Package, ChevronDown, ChevronUp, Menu, X, Instagram 
+  Dumbbell, Users, Calendar, ArrowRight, CheckCircle, Star, Package, ChevronDown, ChevronUp, Menu, X, Clock, Footprints 
 } from 'lucide-react';
-
 
 import GYM_Background from '../assets/images/GYM_Background.jpg';
 // --- IMPORT ALL 9 LOCAL IMAGES ---
@@ -17,6 +16,16 @@ import gym6 from '../assets/images/gym6.jpeg';
 import gym7 from '../assets/images/gym7.jpeg';
 import gym8 from '../assets/images/gym8.jpeg';
 import gym9 from '../assets/images/gym9.jpeg';
+
+// --- GRADIENT HELPER ---
+const getCardColor = (name = "") => {
+  const n = name.toLowerCase();
+  if (n.includes('gold')) return 'bg-gradient-to-br from-yellow-500 to-amber-600';
+  if (n.includes('silver')) return 'bg-gradient-to-br from-gray-400 to-slate-500';
+  if (n.includes('platinum')) return 'bg-gradient-to-br from-slate-300 to-gray-400 text-gray-800';
+  if (n.includes('bronze')) return 'bg-gradient-to-br from-orange-700 to-orange-900';
+  return 'bg-gradient-to-br from-blue-700 to-indigo-800';
+};
 
 export default function LandingPage() {
   const [config, setConfig] = useState({
@@ -34,7 +43,7 @@ export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // --- GALLERY CONFIGURATION (ALL 9 IMAGES) ---
+  // --- GALLERY CONFIGURATION ---
   const galleryImages = [
     { url: gym1, title: "Main Strength Zone", subtitle: "Hammer Strength Certified" },
     { url: gym2, title: "Free Weights Area", subtitle: "Dumbbells up to 50kg" },
@@ -215,7 +224,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- GALLERY SECTION (UPDATED: All 9 Images) --- */}
+      {/* --- GALLERY SECTION --- */}
       <section id="gallery" className="py-24 bg-slate-950 relative overflow-hidden">
         {/* Background Elements */}
         <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-900/10 to-transparent pointer-events-none"></div>
@@ -271,7 +280,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- PRICING SECTION --- */}
+      {/* --- PRICING SECTION (UPDATED) --- */}
       <section id="pricing" className="py-24 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto mb-16">
@@ -298,7 +307,8 @@ export default function LandingPage() {
                       key={plan.plan_id}
                       className="relative group bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 flex flex-col"
                     >
-                      <div className="bg-slate-900 p-8 text-white relative overflow-hidden shrink-0">
+                      {/* --- NEW GRADIENT HEADER --- */}
+                      <div className={`${getCardColor(plan.name)} p-8 text-white relative overflow-hidden shrink-0`}>
                         <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-transform duration-700">
                           <Package size={120} />
                         </div>
@@ -306,12 +316,12 @@ export default function LandingPage() {
                           <div className="flex justify-between items-start">
                             <div>
                               <h3 className="text-2xl font-black tracking-tight">{plan.name}</h3>
-                              <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-2">
+                              <p className="text-white/80 text-xs font-bold uppercase tracking-wider mt-2">
                                 {plan.duration_months} Month Access
                               </p>
                             </div>
                             {isBestValue && (
-                              <span className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
+                              <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
                                 Best Value
                               </span>
                             )}
@@ -325,20 +335,47 @@ export default function LandingPage() {
                       </div>
 
                       <div className="p-8 flex flex-col flex-1">
-                        <p className="text-gray-500 text-sm mb-8 leading-relaxed min-h-[40px] line-clamp-2">
+                        <p className="text-gray-500 text-sm mb-6 leading-relaxed min-h-[40px] line-clamp-2">
                           {plan.description || "Unlock full access to gym facilities and equipment."}
                         </p>
                         
-                        <div className="space-y-4 mb-8 flex-1">
-                          {features.slice(0, 5).map((feature, idx) => (
-                            <div key={idx} className="flex items-start gap-3 text-sm text-gray-700 font-bold">
-                              <CheckCircle size={18} className="text-blue-600 shrink-0 mt-0.5" />
-                              <span className="leading-tight">{feature}</span>
-                            </div>
-                          ))}
-                          {features.length > 5 && (
-                             <div className="pl-8 text-xs font-bold text-blue-600">+ {features.length - 5} more benefits</div>
-                          )}
+                        <div className="space-y-3 mb-8 flex-1">
+                           {/* --- LOGIC FEATURES (TRAINER/LIMITS) --- */}
+                           {plan.includes_trainer && (
+                              <div className="flex items-center text-sm font-bold text-gray-800">
+                                <Dumbbell className="w-5 h-5 text-emerald-500 mr-3 shrink-0"/> Personal Trainer Included
+                              </div>
+                           )}
+                           {plan.visit_limit_per_week ? (
+                             <div className="flex items-center text-sm font-bold text-gray-800">
+                               <Footprints className="w-5 h-5 text-blue-500 mr-3 shrink-0"/> {plan.visit_limit_per_week} Gym Visits per Week
+                             </div>
+                           ) : (
+                             <div className="flex items-center text-sm font-bold text-gray-800">
+                               <CheckCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0"/> Unlimited Gym Access
+                             </div>
+                           )}
+                           {plan.class_limit_per_week ? (
+                             <div className="flex items-center text-sm font-bold text-gray-800">
+                               <Calendar className="w-5 h-5 text-purple-500 mr-3 shrink-0"/> {plan.class_limit_per_week} Classes per Week
+                             </div>
+                           ) : (
+                             <div className="flex items-center text-sm font-bold text-gray-800">
+                               <CheckCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0"/> Unlimited Classes
+                             </div>
+                           )}
+                           {(plan.access_start_time && plan.access_end_time && plan.access_start_time !== '00:00:00') && (
+                             <div className="flex items-center text-sm font-bold text-gray-800">
+                               <Clock className="w-5 h-5 text-orange-500 mr-3 shrink-0"/> Access: {plan.access_start_time.slice(0,5)} - {plan.access_end_time.slice(0,5)}
+                             </div>
+                           )}
+
+                           {/* --- MANUAL FEATURES --- */}
+                           {features.slice(0, 5).map((feature, idx) => (
+                              <div key={idx} className="flex items-center text-sm font-bold text-gray-600">
+                                <CheckCircle className="w-5 h-5 text-gray-400 mr-3 shrink-0"/>{feature}
+                              </div>
+                           ))}
                         </div>
 
                         <Link 

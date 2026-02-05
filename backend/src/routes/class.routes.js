@@ -2,27 +2,30 @@ const express = require("express");
 const router = express.Router();
 const { 
   createClass, 
-  getAllClasses,
+  getAllClasses, 
   updateClass, 
-  deleteClass,
-  getTrainerClasses,
-  cancelClass // <--- Updated Import (was cancelClassByTrainer)
+  updateClassStatus, 
+  deleteClass, 
+  getTrainerClasses
 } = require("../controllers/class.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
-// Public/Member/Admin/Staff can view all
+// Get all classes (Admin, Staff, Trainer, Member can view)
 router.get("/", verifyToken, allowRoles("ADMIN", "TRAINER", "MEMBER", "STAFF"), getAllClasses);
 
-// ADMIN and STAFF can Create/Update/Delete (Full Management)
+// Create Class (Admin & Staff Only)
 router.post("/", verifyToken, allowRoles("ADMIN", "STAFF"), createClass);
+
+// Edit Class Details (Admin & Staff Only)
 router.put("/:id", verifyToken, allowRoles("ADMIN", "STAFF"), updateClass);
+
+// Update Status (Cancel/Complete/Restore) - Admin, Staff, and Trainer can perform on their classes
+router.put("/:id/status", verifyToken, allowRoles("ADMIN", "STAFF", "TRAINER"), updateClassStatus);
+
+// Delete Class (Admin & Staff Only)
 router.delete("/:id", verifyToken, allowRoles("ADMIN", "STAFF"), deleteClass);
 
-// --- CANCEL ROUTE (Updated) ---
-// Allows ADMIN, STAFF (any class), and TRAINER (own class) to cancel
-router.patch("/:id/cancel", verifyToken, allowRoles("ADMIN", "STAFF", "TRAINER"), cancelClass);
-
-// --- TRAINER ROUTES ---
+// Trainer View - Get trainer's assigned classes (must be placed AFTER other routes to avoid conflict)
 router.get("/trainer/my-classes", verifyToken, allowRoles("TRAINER"), getTrainerClasses);
 
 module.exports = router;

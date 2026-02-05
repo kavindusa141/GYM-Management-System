@@ -3,11 +3,21 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
   Search, CheckCircle, Banknote, Calendar, 
-  History, Receipt, FileText, Upload, Filter, X, ChevronDown 
+  History, Receipt, FileText, Upload, Filter, X, ChevronDown, Package 
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/currencyFormatter';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
+// --- GRADIENT HELPER ---
+const getCardColor = (name = "") => {
+  const n = name.toLowerCase();
+  if (n.includes('gold')) return 'bg-gradient-to-br from-yellow-500 to-amber-600';
+  if (n.includes('silver')) return 'bg-gradient-to-br from-gray-400 to-slate-500';
+  if (n.includes('platinum')) return 'bg-gradient-to-br from-slate-300 to-gray-400 text-gray-800';
+  if (n.includes('bronze')) return 'bg-gradient-to-br from-orange-700 to-orange-900';
+  return 'bg-gradient-to-br from-blue-700 to-indigo-800';
+};
 
 export default function PointOfSale() {
   // --- TABS STATE ---
@@ -249,7 +259,7 @@ export default function PointOfSale() {
               )}
             </div>
 
-            {/* 2. Plan Selection */}
+            {/* 2. Plan Selection (Updated Mini-Cards) */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Calendar className="text-blue-600" size={20} /> Select Plan
@@ -259,17 +269,24 @@ export default function PointOfSale() {
                   <div 
                     key={plan.plan_id}
                     onClick={() => setSelectedPlan(plan)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    className={`rounded-xl border cursor-pointer transition-all overflow-hidden flex flex-col ${
                       selectedPlan?.plan_id === plan.plan_id 
-                        ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' 
-                        : 'border-gray-100 hover:bg-gray-50'
+                        ? 'border-blue-500 ring-2 ring-blue-500 shadow-md transform scale-[1.02]' 
+                        : 'border-gray-100 hover:shadow-lg hover:-translate-y-1'
                     }`}
                   >
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-bold text-gray-900 text-sm">{plan.name}</h3>
-                      <span className="font-black text-blue-600">{formatCurrency(plan.price)}</span>
+                    {/* Gradient Header Strip */}
+                    <div className={`${getCardColor(plan.name)} h-2`}></div>
+                    
+                    <div className="p-4 bg-white flex justify-between items-center">
+                      <div>
+                        <h3 className="font-black text-gray-900 text-sm uppercase tracking-wide">{plan.name}</h3>
+                        <p className="text-xs text-gray-400 font-bold mt-1">{plan.duration_months} Months Access</p>
+                      </div>
+                      <div className="text-right">
+                         <span className="block font-black text-lg text-slate-800">{formatCurrency(plan.price)}</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{plan.duration_months} Months</p>
                   </div>
                 ))}
               </div>
