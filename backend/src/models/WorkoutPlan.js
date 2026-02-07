@@ -10,8 +10,12 @@ const WorkoutPlan = sequelize.define("WorkoutPlan", {
   },
   member_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true, // Changed to TRUE for common plans
     references: { model: User, key: 'user_id' }
+  },
+  is_common: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   trainer_id: {
     type: DataTypes.INTEGER,
@@ -35,6 +39,15 @@ const WorkoutPlan = sequelize.define("WorkoutPlan", {
     type: DataTypes.DATEONLY, // YYYY-MM-DD
     allowNull: true
   },
+  duration: {
+    type: DataTypes.INTEGER, // Number of days/weeks (stored as number)
+    allowNull: true
+  },
+  updated_by: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: { model: User, key: 'user_id' }
+  },
   // ------------------
   status: {
     type: DataTypes.ENUM('ACTIVE', 'COMPLETED', 'ARCHIVED'),
@@ -47,7 +60,6 @@ const WorkoutPlan = sequelize.define("WorkoutPlan", {
 });
 
 // Associations
-WorkoutPlan.belongsTo(User, { as: 'Member', foreignKey: 'member_id' });
-WorkoutPlan.belongsTo(User, { as: 'Trainer', foreignKey: 'trainer_id' });
+// Associations are defined in associations.js
 
 module.exports = WorkoutPlan;

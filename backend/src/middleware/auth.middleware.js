@@ -20,9 +20,15 @@ exports.verifyToken = (req, res, next) => {
 // Role-based access
 exports.allowRoles = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    // Ensure req.user exists (fixed potential crash if verifyToken not used before)
+    if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ message: "Access denied" });
     }
     next();
   };
 };
+
+// Convenience helpers
+exports.isAdmin = exports.allowRoles('ADMIN');
+exports.isTrainer = exports.allowRoles('TRAINER');
+exports.isMember = exports.allowRoles('MEMBER');

@@ -3,27 +3,28 @@ const router = express.Router();
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
 // Import controller functions
-const { 
-  getDashboardStats, 
-  getAnalytics 
+const {
+  getDashboardStats,
+  getAnalytics
 } = require("../controllers/dashboard.controller");
 
 
 
-const { 
-  getAllMembers, 
-  addMember, 
+const {
+  getAllMembers,
+  addMember,
   deleteMember,
   getDeletedMembers,
   getDeletedMemberPaymentHistory,
   getDeletedMemberSubscriptionHistory,
   getDeletedMemberAttendanceHistory,
-  getEmployees, 
-  createEmployee, 
+  getEmployees,
+  createEmployee,
   getAllTrainers,
-  deleteEmployee
- 
-} = require("../controllers/admin.controller"); 
+  deleteEmployee,
+  getExpiredAssignedMembers // Added
+
+} = require("../controllers/admin.controller");
 
 const { getReportsData } = require("../controllers/reports.controller");
 
@@ -48,6 +49,9 @@ router.get("/deleted-members", verifyToken, allowRoles("ADMIN"), getDeletedMembe
 router.get("/deleted-members/:id/payments", verifyToken, allowRoles("ADMIN"), getDeletedMemberPaymentHistory);
 router.get("/deleted-members/:id/subscriptions", verifyToken, allowRoles("ADMIN"), getDeletedMemberSubscriptionHistory);
 router.get("/deleted-members/:id/attendance", verifyToken, allowRoles("ADMIN"), getDeletedMemberAttendanceHistory);
+
+// 6. Expired Members with Active Assignments
+router.get("/expired-members", verifyToken, allowRoles("ADMIN"), getExpiredAssignedMembers);
 
 // --- EMPLOYEES (STAFF & TRAINERS) ---
 router.get("/employees", verifyToken, allowRoles("ADMIN"), getEmployees);

@@ -12,31 +12,14 @@ const UserSubscription = require("./models/UserSubscription");
 const Payment = require("./models/Payment");
 const MembershipPlan = require("./models/MembershipPlan");
 const Attendance = require("./models/Attendance");
+const MemberAssignment = require("./models/MemberAssignment");
+const ProgressLog = require("./models/ProgressLog");
 
-// ===============================
-// DEFINE ASSOCIATIONS (ONCE)
-// ===============================
+// Associations are now centralized in ./models/associations.js
+// require("./models/associations") is called in server.js
 
-// User ↔ Member Profile
-User.hasOne(MemberProfile, { foreignKey: "user_id" });
-MemberProfile.belongsTo(User, { foreignKey: "user_id" });
-
-// User ↔ Subscription
-User.hasMany(UserSubscription, { foreignKey: "user_id" });
-UserSubscription.belongsTo(User, { foreignKey: "user_id" });
-
-// Subscription ↔ Plan
-UserSubscription.belongsTo(MembershipPlan, { foreignKey: "plan_id" });
-
-// User ↔ Payments
-User.hasMany(Payment, { foreignKey: "user_id" });
-Payment.belongsTo(User, { foreignKey: "user_id", onDelete: 'RESTRICT' });
-
-// Payment ↔ Plan
-Payment.belongsTo(MembershipPlan, { foreignKey: "plan_id" });
-
-User.hasMany(Attendance, { foreignKey: "member_id" });
-Attendance.belongsTo(User, { foreignKey: "member_id" });
+// User ↔ Member Assignments
+// User ↔ Member Assignments and Progress Logs are now handled in associations.js
 
 // ===============================
 // IMPORT ROUTES
@@ -54,6 +37,8 @@ const bookingRoutes = require("./routes/booking.routes");
 const membershipRoutes = require("./routes/membership.routes");
 const settingsRoutes = require("./routes/settings.routes");
 const availabilityRoutes = require("./routes/availability.routes");
+const assignmentRoutes = require("./routes/assignment.routes");
+const progressRoutes = require("./routes/progress.routes");
 
 
 // ===============================
@@ -82,6 +67,8 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/memberships", membershipRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/availability", availabilityRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/progress", progressRoutes);
 
 // Dashboard routes (shared but role-protected internally)
 app.use("/api/admin", dashboardRoutes);

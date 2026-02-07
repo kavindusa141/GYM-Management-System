@@ -36,7 +36,7 @@ const Attendance = sequelize.define("Attendance", {
   },
   // --- ENSURE STATUS IS DEFINED ---
   status: {
-    type: DataTypes.ENUM('PRESENT', 'CHECKED_OUT'), 
+    type: DataTypes.ENUM('PRESENT', 'CHECKED_OUT'),
     defaultValue: 'PRESENT'
   }
 }, {
@@ -45,6 +45,6 @@ const Attendance = sequelize.define("Attendance", {
 });
 
 // Association: An Attendance record belongs to a User
-Attendance.belongsTo(User, { foreignKey: 'member_id', targetKey: 'user_id' });
+// Associations are defined in associations.js
 
 module.exports = Attendance;

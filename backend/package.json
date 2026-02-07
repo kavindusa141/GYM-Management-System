@@ -23,6 +23,7 @@
     "jspdf-autotable": "^5.0.7",
     "multer": "^2.0.2",
     "mysql2": "^3.16.0",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
     "sequelize": "^6.37.7",
     "stripe": "^20.2.0"

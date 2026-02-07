@@ -32,7 +32,7 @@ const GymClass = sequelize.define("GymClass", {
     allowNull: false
   },
   start_time: {
-    type: DataTypes.TIME, 
+    type: DataTypes.TIME,
     allowNull: false
   },
   end_time: {
@@ -66,11 +66,11 @@ const GymClass = sequelize.define("GymClass", {
 
   // --- LEGACY FIELDS (Auto-calculated) ---
   day_of_week: {
-    type: DataTypes.STRING, 
-    allowNull: true 
+    type: DataTypes.STRING,
+    allowNull: true
   },
   duration: {
-    type: DataTypes.INTEGER, 
+    type: DataTypes.INTEGER,
     defaultValue: 60
   }
 }, {
@@ -96,6 +96,6 @@ const GymClass = sequelize.define("GymClass", {
   }
 });
 
-GymClass.belongsTo(User, { as: 'Trainer', foreignKey: 'trainer_id' });
+// Associations are defined in associations.js
 
 module.exports = GymClass;

@@ -5,7 +5,7 @@ import LandingPage from './pages/LandingPage';
 // Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword'; 
+import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 
 // Layouts
@@ -32,12 +32,13 @@ import AdminDashboard from './pages/admin/Dashboard';
 import MemberManagement from './pages/admin/MemberManagement';
 import ManageStaff from './pages/admin/ManageStaff';
 import Attendance from './pages/admin/Attendance';
-import CreateMembershipPlan from './pages/admin/CreatePlan'; 
+import CreateMembershipPlan from './pages/admin/CreatePlan';
 import Billing from './pages/admin/Billing';
 import ManageClasses from './pages/admin/ManageClasses';
 import Reports from './pages/admin/Reports';
 import Equipment from './pages/admin/Equipment';
 import AdminSettings from './pages/admin/Settings';
+import AssignTrainer from './pages/admin/AssignTrainer';
 
 // Trainer Pages
 import TrainerDashboard from './pages/trainer/Dashboard';
@@ -47,11 +48,13 @@ import ManagePlans from './pages/trainer/ManagePlans';
 import MyClasses from './pages/trainer/MyClasses';
 import MyAvailability from './pages/trainer/MyAvailability';
 import TrainerSettings from './pages/trainer/Settings';
+import TrainerMembers from './pages/trainer/TrainerMembers';
+import MemberProgress from './pages/trainer/MemberProgress';
 
 // Staff Pages
 import StaffDashboard from './pages/staff/Dashboard';
 import MarkAttendance from './pages/staff/MarkAttendance';
-import RegisterMember from './pages/staff/RegisterMember'; 
+import RegisterMember from './pages/staff/RegisterMember';
 import PointOfSale from './pages/staff/PointOfSale';
 import StaffSettings from './pages/staff/Settings';
 import StaffReports from './pages/staff/Reports';
@@ -79,7 +82,7 @@ export default function App() {
       {/* Password Recovery Routes */}
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
-      
+
       {/* Receipt Route - Shared for both ADMIN and MEMBER */}
       <Route path="/receipt/:payment_id" element={
         <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER']}>
@@ -96,14 +99,14 @@ export default function App() {
         <Route index element={<Navigate to="dashboard" />} />
         <Route path="dashboard" element={<MemberDashboard />} />
         <Route path="profile-setup" element={<MemberProfileSetup />} />
-        <Route path="profile" element={<MemberProfile />}/>
+        <Route path="profile" element={<MemberProfile />} />
         <Route path="schedule" element={<Schedule />} />
         <Route path="workouts" element={<WorkoutPlans />} />
         <Route path="payment" element={<Payment />} />
-        <Route path="scan" element={<ScanAttendance />} /> 
+        <Route path="scan" element={<ScanAttendance />} />
         <Route path="history" element={<History />} />
         <Route path="settings" element={<MemberSettings />} />
-  
+
 
       </Route>
 
@@ -116,6 +119,7 @@ export default function App() {
         <Route index element={<Navigate to="dashboard" />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="members" element={<MemberManagement />} />
+        <Route path="assign-trainer" element={<AssignTrainer />} />
         <Route path="staff" element={<ManageStaff />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="create-plan" element={<CreateMembershipPlan />} />
@@ -124,25 +128,29 @@ export default function App() {
         <Route path="reports" element={<Reports />} />
         <Route path="equipment" element={<Equipment />} />
         <Route path="settings" element={<AdminSettings />} />
-        
+
       </Route>
 
       {/* --- TRAINER PORTAL --- */}
       <Route path="/trainer" element={
-            <ProtectedRoute allowedRoles={['TRAINER']}>
-                 <TrainerLayout />
-                   </ProtectedRoute>
-         }>
-  <Route index element={<Navigate to="dashboard" />} />
-  <Route path="dashboard" element={<TrainerDashboard />} />
-  <Route path="create-plan" element={<CreateWorkoutPlan />} />
-  <Route path="plans" element={<ManagePlans />} />
-  <Route path="edit-plan/:id" element={<CreateWorkoutPlan />} />
-  <Route path="progress" element={<ClientProgress />} />
-  <Route path="classes" element={<MyClasses />} />
-  <Route path="availability" element={<MyAvailability />} />
-  <Route path="settings" element={<TrainerSettings />} />
-</Route>
+        <ProtectedRoute allowedRoles={['TRAINER']}>
+          <TrainerLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Navigate to="dashboard" />} />
+        <Route path="dashboard" element={<TrainerDashboard />} />
+        <Route path="create-plan" element={<CreateWorkoutPlan />} />
+        <Route path="plans" element={<ManagePlans />} />
+        <Route path="edit-plan/:id" element={<CreateWorkoutPlan />} />
+        <Route path="edit-plan/:id" element={<CreateWorkoutPlan />} />
+        <Route path="members" element={<TrainerMembers />} />
+        <Route path="members/:memberId/progress" element={<MemberProgress />} />
+        <Route path="members/:memberId/workout" element={<CreateWorkoutPlan />} />
+        <Route path="progress" element={<ClientProgress />} />
+        <Route path="classes" element={<MyClasses />} />
+        <Route path="availability" element={<MyAvailability />} />
+        <Route path="settings" element={<TrainerSettings />} />
+      </Route>
 
 
       {/* --- STAFF PORTAL --- */}

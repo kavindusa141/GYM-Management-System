@@ -10,7 +10,7 @@ exports.getAllMembers = async (req, res) => {
     const MembershipPlan = require("../models/MembershipPlan");
 
     const members = await User.findAll({
-      where: { 
+      where: {
         role: 'MEMBER',
         [Op.or]: [
           { is_deleted: false },
@@ -20,16 +20,16 @@ exports.getAllMembers = async (req, res) => {
       // We only fetch 'status' (Database column)
       attributes: ['user_id', 'member_code', 'name', 'email', 'phone', 'status', 'created_at'],
       include: [
-        { 
-          model: MemberProfile, 
-          attributes: ['profile_id'] 
+        {
+          model: MemberProfile,
+          attributes: ['profile_id']
         },
         {
           model: UserSubscription,
           attributes: ['status', 'end_date', 'plan_id'],
           include: [{ model: MembershipPlan, attributes: ['name'] }],
           order: [['end_date', 'DESC']],
-          limit: 1 
+          limit: 1
         }
       ],
       order: [['user_id', 'DESC']]
@@ -44,7 +44,7 @@ exports.getAllMembers = async (req, res) => {
       if (latestSub) {
         const today = new Date();
         const endDate = new Date(latestSub.end_date);
-        
+
         planName = latestSub.MembershipPlan?.name || 'Unknown Plan';
         expiryDate = latestSub.end_date;
 
@@ -62,7 +62,7 @@ exports.getAllMembers = async (req, res) => {
         expiry_date: expiryDate,
         // LOGIC: If status is 1 (true), we tell Frontend "is_verified: true"
         // This keeps the UI working without changing the database.
-        is_verified: member.status === true 
+        is_verified: member.status === true
       };
     });
 
@@ -107,7 +107,7 @@ exports.addMember = async (req, res) => {
 
   } catch (err) {
     console.error("Add Member Error:", err);
-    res.status(500).json({ message: err.message }); 
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -115,7 +115,7 @@ exports.addMember = async (req, res) => {
 exports.deleteMember = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: "Member not found" });
@@ -142,7 +142,7 @@ exports.deleteMember = async (req, res) => {
 exports.getEmployees = async (req, res) => {
   try {
     const employees = await User.findAll({
-      where: { 
+      where: {
         role: ["STAFF", "TRAINER"],
         [Op.or]: [
           { is_deleted: false },
@@ -181,8 +181,8 @@ exports.createEmployee = async (req, res) => {
       email,
       password: hashedPassword,
       phone,
-      role, 
-      status: true 
+      role,
+      status: true
     });
 
     const prefix = role === "TRAINER" ? "RFK-T" : "RFK-S";
@@ -201,7 +201,7 @@ exports.createEmployee = async (req, res) => {
 exports.getAllTrainers = async (req, res) => {
   try {
     const trainers = await User.findAll({
-      where: { 
+      where: {
         role: 'TRAINER',
         [Op.or]: [
           { is_deleted: false },
@@ -220,7 +220,7 @@ exports.getAllTrainers = async (req, res) => {
 exports.deleteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -302,6 +302,70 @@ exports.getDeletedMemberAttendanceHistory = async (req, res) => {
     });
     res.json({ attendance_history: attendanceHistory });
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 8. Get Expired Members with Active Assignments
+exports.getExpiredAssignedMembers = async (req, res) => {
+  try {
+    const MemberAssignment = require("../models/MemberAssignment");
+    const UserSubscription = require("../models/UserSubscription");
+    const MembershipPlan = require("../models/MembershipPlan");
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const expiredMembers = await User.findAll({
+      where: { role: 'MEMBER', is_deleted: false },
+      attributes: ['user_id', 'name', 'member_code', 'email'],
+      include: [
+        {
+          model: UserSubscription,
+          required: true,
+          where: {
+            [Op.or]: [
+              { status: 'EXPIRED' },
+              { end_date: { [Op.lt]: today } }
+            ]
+          },
+          include: [{ model: MembershipPlan, attributes: ['name'] }]
+        },
+        {
+          model: MemberAssignment,
+          as: 'MemberAssignments', // Requires correct association alias in helper/modal
+          required: true,
+          where: { status: 'ACTIVE' },
+          include: [{ model: User, as: 'Trainer', attributes: ['name', 'member_code'] }]
+        }
+      ]
+    });
+
+    const processed = expiredMembers.map(m => {
+      const sub = m.UserSubscriptions[0];
+      const assign = m.MemberAssignments[0];
+
+      // Calculate days expired
+      const endDate = new Date(sub.end_date);
+      const now = new Date();
+      const diffTime = Math.abs(now - endDate);
+      const daysExpired = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      return {
+        user_id: m.user_id,
+        name: m.name,
+        member_code: m.member_code,
+        plan_name: sub.MembershipPlan?.name,
+        expiry_date: sub.end_date,
+        days_expired: daysExpired,
+        assigned_trainer: assign.Trainer?.name,
+        trainer_code: assign.Trainer?.member_code,
+        assignment_id: assign.assignment_id
+      };
+    });
+
+    res.json(processed);
+  } catch (err) {
+    console.error("Get Expired Members Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
