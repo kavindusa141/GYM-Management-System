@@ -111,7 +111,7 @@ exports.addMember = async (req, res) => {
   }
 };
 
-// 3. Soft Delete Member
+// 3. Delete (Soft Delete) a member
 exports.deleteMember = async (req, res) => {
   try {
     const { id } = req.params;
@@ -134,6 +134,58 @@ exports.deleteMember = async (req, res) => {
 
     res.json({ message: "Member deleted successfully." });
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 3.1 Get Member Profile By ID (Admin/Staff View)
+exports.getMemberProfileById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user exists first
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Fetch profile with user details
+    const profile = await MemberProfile.findOne({
+      where: { user_id: id },
+      include: [{
+        model: User,
+        attributes: ['name', 'email', 'member_code', 'phone', 'role', 'status', 'created_at']
+      }]
+    });
+
+    // Check if they are actually a member
+    if (user.role !== 'MEMBER') {
+      // If it's staff/trainer, we might handle differently or just return what we have if the profile exists
+      // But usually MemberProfile is for MEMBERS.
+    }
+
+    // Return profile or constructed object if partial
+    if (!profile) {
+      // If no extended profile exists yet, return basic user info
+      return res.json({
+        User: {
+          name: user.name,
+          email: user.email,
+          member_code: user.member_code,
+          phone: user.phone,
+          role: user.role,
+          status: user.status,
+          created_at: user.created_at
+        },
+        // Empty profile fields
+        user_id: user.user_id,
+        age: null,
+        weight: null,
+        height: null
+      });
+    }
+
+    res.json(profile);
+  } catch (err) {
+    console.error("Get Member Profile Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -369,3 +421,4 @@ exports.getExpiredAssignedMembers = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+

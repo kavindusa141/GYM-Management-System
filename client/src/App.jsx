@@ -30,11 +30,14 @@ import MemberSettings from './pages/member/Settings';
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import MemberManagement from './pages/admin/MemberManagement';
+import AdminMemberProfile from './pages/admin/AdminMemberProfile';
+import AddMember from './pages/admin/AddMember';
 import ManageStaff from './pages/admin/ManageStaff';
 import Attendance from './pages/admin/Attendance';
 import CreateMembershipPlan from './pages/admin/CreatePlan';
 import Billing from './pages/admin/Billing';
 import ManageClasses from './pages/admin/ManageClasses';
+import ScheduleClass from './pages/admin/ScheduleClass';
 import Reports from './pages/admin/Reports';
 import Equipment from './pages/admin/Equipment';
 import AdminSettings from './pages/admin/Settings';
@@ -119,12 +122,16 @@ export default function App() {
         <Route index element={<Navigate to="dashboard" />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="members" element={<MemberManagement />} />
+        <Route path="members/new" element={<AddMember />} />
+        <Route path="members/:id" element={<AdminMemberProfile />} />
         <Route path="assign-trainer" element={<AssignTrainer />} />
         <Route path="staff" element={<ManageStaff />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="create-plan" element={<CreateMembershipPlan />} />
         <Route path="billing" element={<Billing />} />
         <Route path="classes" element={<ManageClasses />} />
+        <Route path="classes/new" element={<ScheduleClass />} />
+        <Route path="classes/:id/edit" element={<ScheduleClass />} />
         <Route path="reports" element={<Reports />} />
         <Route path="equipment" element={<Equipment />} />
         <Route path="settings" element={<AdminSettings />} />
@@ -162,6 +169,9 @@ export default function App() {
         <Route index element={<Navigate to="dashboard" />} />
         <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="attendance" element={<MarkAttendance />} />
+        <Route path="members" element={<MemberManagement />} />
+        <Route path="members/new" element={<AddMember />} />
+        <Route path="members/:id" element={<AdminMemberProfile />} />
         <Route path="register" element={<RegisterMember />} />
         <Route path="pos" element={<PointOfSale />} />
         <Route path="classes" element={<ManageClasses />} />

@@ -3,23 +3,32 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatCurrency, formatChartCurrency } from '../../utils/currencyFormatter';
-import { 
+import { formatCurrency } from '../../utils/currencyFormatter';
+import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
-import { Download, FileText, Calendar, Filter, Clock, TrendingUp } from 'lucide-react';
+import { Download, FileText, Calendar, Filter, Clock, TrendingUp, UserMinus, AlertCircle, UserCheck } from 'lucide-react';
 
 export default function Reports() {
   // Initial State matches new Backend Structure
-  const [data, setData] = useState({ 
-    financial: [], 
-    payment_methods: [], 
-    attendance: [], 
+  const [data, setData] = useState({
+    financial: [],
+    payment_methods: [],
+    attendance: [],
     peak_hours: [],
-    membership: [] 
+    membership: [],
+    retention: {
+      churn_count: 0,
+      at_risk_count: 0,
+      at_risk_members: [],
+      expiring_count: 0,
+      expiring_members: []
+    },
+    attendance_logs: [],
+    heatmap: []
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('FINANCIAL');
 
@@ -33,6 +42,7 @@ export default function Reports() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {
@@ -42,6 +52,7 @@ export default function Reports() {
       const res = await api.get(`/admin/reports?startDate=${dateRange.start}&endDate=${dateRange.end}`);
       setData(res.data);
     } catch (error) {
+      console.error(error);
       toast.error("Failed to load reports");
     } finally {
       setLoading(false);
@@ -59,7 +70,7 @@ export default function Reports() {
       doc.setFontSize(18);
       doc.setTextColor(30, 64, 175);
       doc.text(`Royal Fitness - ${type} Report`, 14, 22);
-      
+
       doc.setFontSize(10);
       doc.setTextColor(100);
       doc.text(`Period: ${dateRange.start} to ${dateRange.end}`, 14, 30);
@@ -80,11 +91,15 @@ export default function Reports() {
         tableRows.push(['TOTAL', '', `Rs. ${totalRev.toFixed(2)}`]);
 
       } else if (type === 'Attendance') {
-        tableColumn = ["Date", "Total Check-ins"];
-        if (data.attendance.length === 0) return toast.error("No data");
-        tableRows = data.attendance.map(row => [row.date, row.count]);
-        const totalVisits = data.attendance.reduce((a, b) => a + b.count, 0);
-        tableRows.push(['TOTAL VISITS', totalVisits]);
+        tableColumn = ["Date", "Time", "Member", "Status"];
+        if (!data.attendance_logs || data.attendance_logs.length === 0) return toast.error("No data");
+        tableRows = data.attendance_logs.map(log => [
+          log.date,
+          log.check_in,
+          log.member_name,
+          log.status
+        ]);
+        tableRows.push(['', '', 'TOTAL VISITS', data.attendance_logs.length]);
 
       } else if (type === 'Membership') {
         tableColumn = ["Plan Name", "Price", "Active Members", "Est. Monthly Value"];
@@ -94,6 +109,22 @@ export default function Reports() {
           `Rs. ${row.plan_price}`,
           row.member_count,
           `Rs. ${row.estimated_value.toFixed(2)}`
+        ]);
+        tableRows = data.membership.map(row => [
+          row.plan_name,
+          `Rs. ${row.plan_price}`,
+          row.member_count,
+          `Rs. ${row.estimated_value.toFixed(2)}`
+        ]);
+
+      } else if (type === 'Retention') {
+        tableColumn = ["At-Risk Member", "Phone", "Email", "Status"];
+        if (data.retention.at_risk_members.length === 0) return toast.error("No at-risk members");
+        tableRows = data.retention.at_risk_members.map(row => [
+          row.name,
+          row.phone || 'N/A',
+          row.email,
+          'No Visit 21+ Days'
         ]);
       }
 
@@ -126,11 +157,14 @@ export default function Reports() {
         headers = ["Date", "Transactions", "Total Revenue"];
         rows = data.financial.map(r => [r.date, r.transaction_count, r.total_revenue]);
       } else if (type === 'Attendance') {
-        headers = ["Date", "Total Check-ins"];
-        rows = data.attendance.map(r => [r.date, r.count]);
+        headers = ["Date", "Time", "Member", "Status"];
+        rows = data.attendance_logs.map(r => [r.date, r.check_in, r.member_name, r.status]);
       } else if (type === 'Membership') {
         headers = ["Plan Name", "Price", "Active Members", "Est. Value"];
         rows = data.membership.map(r => [r.plan_name, r.plan_price, r.member_count, r.estimated_value]);
+      } else if (type === 'Retention') {
+        headers = ["At-Risk Member", "Phone", "Email"];
+        rows = data.retention.at_risk_members.map(r => [r.name, r.phone, r.email]);
       }
 
       if (rows.length === 0) return toast.error("No data");
@@ -144,9 +178,10 @@ export default function Reports() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success("CSV Downloaded");
     } catch (err) {
+      console.error(err);
       toast.error("CSV generation failed");
     }
   };
@@ -174,7 +209,7 @@ export default function Reports() {
 
   return (
     <div className="space-y-6 animate-fade-in pb-20">
-      
+
       {/* HEADER & FILTERS */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
@@ -188,8 +223,8 @@ export default function Reports() {
             <Calendar size={16} className="text-gray-400 ml-2" />
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-gray-400 uppercase px-1">From</span>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="bg-transparent text-sm font-bold text-gray-700 outline-none"
                 value={dateRange.start}
                 onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
@@ -198,15 +233,15 @@ export default function Reports() {
             <div className="w-px h-8 bg-gray-300 mx-2"></div>
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-gray-400 uppercase px-1">To</span>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="bg-transparent text-sm font-bold text-gray-700 outline-none"
                 value={dateRange.end}
                 onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
               />
             </div>
           </div>
-          <button 
+          <button
             onClick={fetchData}
             className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-95"
             title="Apply Date Filter"
@@ -218,15 +253,14 @@ export default function Reports() {
 
       {/* TABS */}
       <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl w-fit">
-        {['FINANCIAL', 'ATTENDANCE', 'MEMBERSHIP'].map((tab) => (
+        {['FINANCIAL', 'ATTENDANCE', 'MEMBERSHIP', 'RETENTION'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${
-              activeTab === tab 
-                ? 'bg-white text-blue-600 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
+            className={`px-6 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === tab
+              ? 'bg-white text-blue-600 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+              }`}
           >
             {tab.charAt(0) + tab.slice(1).toLowerCase()}
           </button>
@@ -240,16 +274,18 @@ export default function Reports() {
         </div>
       ) : (
         <div className="grid lg:grid-cols-3 gap-6">
-          
+
           {/* LEFT: MAIN CHART */}
           <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                {activeTab === 'FINANCIAL' && <><TrendingUp size={20} className="text-green-500"/> Revenue Trend</>}
-                {activeTab === 'ATTENDANCE' && <><TrendingUp size={20} className="text-blue-500"/> Check-in Volume</>}
-                {activeTab === 'MEMBERSHIP' && <><TrendingUp size={20} className="text-purple-500"/> Membership Distribution</>}
+                {activeTab === 'FINANCIAL' && <><TrendingUp size={20} className="text-green-500" /> Revenue Trend</>}
+                {activeTab === 'ATTENDANCE' && <><TrendingUp size={20} className="text-blue-500" /> Check-in Volume</>}
+                {activeTab === 'MEMBERSHIP' && <><TrendingUp size={20} className="text-purple-500" /> Membership Distribution</>}
+                {activeTab === 'RETENTION' && <><AlertCircle size={20} className="text-red-500" /> At-Risk & Expiring Members</>}
+
               </h3>
-              
+
               <div className="flex gap-2">
                 <button onClick={() => downloadCSV(currentType)} className="flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100 transition">
                   <FileText size={14} /> CSV
@@ -266,13 +302,13 @@ export default function Reports() {
                   <AreaChart data={data.financial}>
                     <defs>
                       <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1}/>
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.1} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{fontSize: 11}} />
-                    <YAxis tickFormatter={(val) => `${val/1000}k`} tick={{fontSize: 11}} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tickFormatter={(val) => `${val / 1000}k`} tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(value) => formatCurrency(value)} />
                     <Area type="monotone" dataKey="total_revenue" stroke="#3B82F6" strokeWidth={3} fill="url(#colorRev)" />
                   </AreaChart>
@@ -283,10 +319,10 @@ export default function Reports() {
                 <ResponsiveContainer>
                   <LineChart data={data.attendance}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{fontSize: 11}} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="count" stroke="#8B5CF6" strokeWidth={3} dot={{r: 4}} />
+                    <Line type="monotone" dataKey="count" stroke="#8B5CF6" strokeWidth={3} dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -314,13 +350,83 @@ export default function Reports() {
                   </PieChart>
                 </ResponsiveContainer>
               )}
+
+              {activeTab === 'RETENTION' && (
+                <div className="h-[350px] w-full overflow-y-auto custom-scrollbar space-y-6">
+                  {/* At Risk Table */}
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <UserMinus size={16} className="text-red-500" /> At-Risk Members (No visit 21+ days)
+                    </h4>
+                    {data.retention.at_risk_members.length > 0 ? (
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-400 uppercase bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2">Name</th>
+                            <th className="px-3 py-2">Contact</th>
+                            <th className="px-3 py-2">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {data.retention.at_risk_members.map(m => (
+                            <tr key={m.user_id} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 font-medium text-gray-900">{m.name}</td>
+                              <td className="px-3 py-2 text-gray-500">
+                                <div className="flex flex-col">
+                                  <span>{m.phone || 'No Phone'}</span>
+                                  <span className="text-xs">{m.email}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2">
+                                <button className="text-blue-600 hover:underline text-xs font-bold">Call</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">No at-risk members found.</p>
+                    )}
+                  </div>
+
+                  {/* Expiring Table */}
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                      <Clock size={16} className="text-orange-500" /> Expiring Soon (Next 30 Days)
+                    </h4>
+                    {data.retention.expiring_members.length > 0 ? (
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-400 uppercase bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2">Name</th>
+                            <th className="px-3 py-2">Plan</th>
+                            <th className="px-3 py-2">Expires</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {data.retention.expiring_members.map(m => (
+                            <tr key={m.subscription_id} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 font-medium text-gray-900">{m.member_name}</td>
+                              <td className="px-3 py-2 text-gray-500">{m.plan_name}</td>
+                              <td className="px-3 py-2 font-bold text-orange-600">{m.end_date}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">No memberships expiring soon.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* SECONDARY CHART: PEAK HOURS (Only Attendance Tab) */}
             {activeTab === 'ATTENDANCE' && data.peak_hours && data.peak_hours.length > 0 && (
               <div className="mt-8 border-t border-gray-100 pt-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <Clock size={20} className="text-orange-500"/> Peak Hours (Busiest Times)
+                  <Clock size={20} className="text-orange-500" /> Peak Hours (Busiest Times)
                 </h3>
                 <div className="h-[250px] w-full">
                   <ResponsiveContainer>
@@ -328,7 +434,7 @@ export default function Reports() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                       <XAxis dataKey="hour" />
                       <YAxis allowDecimals={false} />
-                      <Tooltip cursor={{fill: '#FFF7ED'}} />
+                      <Tooltip cursor={{ fill: '#FFF7ED' }} />
                       <Bar dataKey="count" fill="#F59E0B" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -339,7 +445,7 @@ export default function Reports() {
 
           {/* RIGHT: INSIGHTS & LISTS */}
           <div className="space-y-6">
-            
+
             {/* KPI Card */}
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl text-white shadow-xl shadow-blue-500/20">
               <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">
@@ -349,9 +455,14 @@ export default function Reports() {
                 {activeTab === 'FINANCIAL' && formatCurrency(data.financial.reduce((a, b) => a + b.total_revenue, 0))}
                 {activeTab === 'ATTENDANCE' && data.attendance.reduce((a, b) => a + b.count, 0)}
                 {activeTab === 'MEMBERSHIP' && data.membership.reduce((a, b) => a + b.member_count, 0)}
+                {activeTab === 'RETENTION' && data.retention.at_risk_count}
+
               </h2>
               <p className="text-sm text-blue-200 mt-2 opacity-80">
-                Data from {new Date(dateRange.start).toLocaleDateString()} to {new Date(dateRange.end).toLocaleDateString()}
+                {activeTab === 'RETENTION'
+                  ? 'Members at risk of leaving (No visit in 21 days)'
+                  : `Data from ${new Date(dateRange.start).toLocaleDateString()} to ${new Date(dateRange.end).toLocaleDateString()}`
+                }
               </p>
             </div>
 
@@ -365,9 +476,9 @@ export default function Reports() {
                       <span className="text-sm font-medium text-gray-700">{method.name}</span>
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-20 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-500 rounded-full" 
-                            style={{ width: `${(method.value / data.financial.reduce((a,b)=>a+b.total_revenue,0)) * 100}%` }}
+                          <div
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${(method.value / data.financial.reduce((a, b) => a + b.total_revenue, 0)) * 100}%` }}
                           ></div>
                         </div>
                         <span className="text-xs font-bold">{formatCurrency(method.value)}</span>
@@ -382,7 +493,7 @@ export default function Reports() {
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex-1 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar">
               <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Detailed Log</h4>
               <div className="space-y-0 divide-y divide-gray-50">
-                
+
                 {activeTab === 'FINANCIAL' && data.financial.map((d, i) => (
                   <div key={i} className="flex justify-between text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
                     <span className="text-gray-600 font-medium">{d.date}</span>
@@ -390,12 +501,25 @@ export default function Reports() {
                   </div>
                 ))}
 
-                {activeTab === 'ATTENDANCE' && data.attendance.map((d, i) => (
-                  <div key={i} className="flex justify-between text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
-                    <span className="text-gray-600 font-medium">{d.date}</span>
-                    <span className="font-bold text-gray-900">{d.count} Visits</span>
+                {activeTab === 'ATTENDANCE' && (
+                  <div className="space-y-0 divide-y divide-gray-50">
+                    {data.attendance_logs?.length > 0 ? (
+                      data.attendance_logs.map((log) => (
+                        <div key={log.id} className="flex justify-between items-center text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
+                          <div className="flex flex-col">
+                            <span className="text-gray-900 font-bold">{log.member_name}</span>
+                            <span className="text-[10px] text-gray-400">{log.date} at {log.check_in}</span>
+                          </div>
+                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${log.status === 'PRESENT' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                            {log.status}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm text-center py-4">No attendance records found.</p>
+                    )}
                   </div>
-                ))}
+                )}
 
                 {activeTab === 'MEMBERSHIP' && data.membership.map((d, i) => (
                   <div key={i} className="flex justify-between items-center text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
@@ -415,6 +539,25 @@ export default function Reports() {
                 ))}
 
               </div>
+
+              {activeTab === 'RETENTION' && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100">
+                    <span className="text-red-800 font-bold text-sm">Churned (Range)</span>
+                    <span className="text-2xl font-black text-red-600">{data.retention.churn_count}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-orange-50 rounded-xl border border-orange-100">
+                    <span className="text-orange-800 font-bold text-sm">Expiring Soon</span>
+                    <span className="text-2xl font-black text-orange-600">{data.retention.expiring_count}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <span className="text-blue-800 font-bold text-sm">Active Members</span>
+                    <span className="text-2xl font-black text-blue-600">
+                      {data.membership.reduce((a, b) => a + b.member_count, 0)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>

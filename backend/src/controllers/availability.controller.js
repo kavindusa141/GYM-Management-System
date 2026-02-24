@@ -1,10 +1,18 @@
 const TrainerAvailability = require("../models/TrainerAvailability");
 
 // 1. Get My Availability
+const { Op } = require("sequelize");
+
+// 1. Get My Availability
 exports.getAvailability = async (req, res) => {
   try {
+    const today = new Date().toISOString().split('T')[0];
     const availability = await TrainerAvailability.findAll({
-      where: { trainer_id: req.user.id }
+      where: {
+        trainer_id: req.user.id,
+        date: { [Op.gte]: today }
+      },
+      order: [['date', 'ASC']]
     });
     res.json(availability);
   } catch (err) {
@@ -15,31 +23,46 @@ exports.getAvailability = async (req, res) => {
 // 2. Update Availability (Save All Days)
 exports.updateAvailability = async (req, res) => {
   try {
-    const { schedule } = req.body; // Expects array: [{ day_of_week: 'Monday', slots: [6,7] }, ...]
+    const { schedule } = req.body; // Expects array: [{ date: '2024-05-20', slots: [6,7] }, ...]
     const trainer_id = req.user.id;
 
-    // We loop through the incoming schedule and update/create records
+    // We loop through the incoming schedule and upsert records
     for (const item of schedule) {
-      const { day_of_week, slots } = item;
+      const { date, slots } = item;
 
-      // Check if record exists
-      const existing = await TrainerAvailability.findOne({
-        where: { trainer_id, day_of_week }
+      // Upsert: Create or Update based on trainer_id and date
+      const [record, created] = await TrainerAvailability.findOrCreate({
+        where: { trainer_id, date },
+        defaults: { slots }
       });
 
-      if (existing) {
-        existing.slots = slots;
-        await existing.save();
-      } else {
-        await TrainerAvailability.create({
-          trainer_id,
-          day_of_week,
-          slots
-        });
+      if (!created) {
+        record.slots = slots;
+        await record.save();
       }
     }
 
     res.json({ message: "Availability updated successfully!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 3. Get Specific Trainer Availability (For Admin/Staff/Member)
+exports.getTrainerAvailabilityById = async (req, res) => {
+  try {
+    const { trainerId } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+
+    const availability = await TrainerAvailability.findAll({
+      where: {
+        trainer_id: trainerId,
+        date: { [Op.gte]: today }
+      },
+      order: [['date', 'ASC']]
+    });
+
+    res.json(availability);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

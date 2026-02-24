@@ -22,7 +22,8 @@ const {
   createEmployee,
   getAllTrainers,
   deleteEmployee,
-  getExpiredAssignedMembers // Added
+  getExpiredAssignedMembers, // Added
+  getMemberProfileById // Added
 
 } = require("../controllers/admin.controller");
 
@@ -41,6 +42,9 @@ router.post("/members", verifyToken, allowRoles("ADMIN", "STAFF"), addMember);
 
 // 3. Delete (Soft Delete) a member
 router.delete("/members/:id", verifyToken, allowRoles("ADMIN", "STAFF"), deleteMember);
+
+// 3.1 Get Specific Member Profile
+router.get("/members/:id/profile", verifyToken, allowRoles("ADMIN", "STAFF"), getMemberProfileById);
 
 // 4. Get all DELETED members (for reporting and analysis)
 router.get("/deleted-members", verifyToken, allowRoles("ADMIN"), getDeletedMembers);

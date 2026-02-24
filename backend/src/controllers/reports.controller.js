@@ -4,6 +4,7 @@ const Payment = require("../models/Payment");
 const Attendance = require("../models/Attendance");
 const MembershipPlan = require("../models/MembershipPlan");
 const UserSubscription = require("../models/UserSubscription");
+const User = require("../models/User");
 
 exports.getReportsData = async (req, res) => {
   try {
@@ -12,7 +13,7 @@ exports.getReportsData = async (req, res) => {
     // Default: Last 30 days
     const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
     const end = endDate ? new Date(endDate) : new Date();
-    
+
     // Adjust end date to include the full day
     const endOfDay = new Date(end);
     endOfDay.setHours(23, 59, 59, 999);
@@ -79,6 +80,21 @@ exports.getReportsData = async (req, res) => {
       raw: true
     });
 
+    // DETAILED CHECK-IN LOGS (Member specific)
+    const memberLogs = await Attendance.findAll({
+      where: {
+        attendance_date: { [Op.between]: [start, end] }
+      },
+      include: [{
+        model: User,
+        attributes: ['name']
+      }],
+      order: [
+        ['attendance_date', 'DESC'],
+        ['check_in', 'DESC']
+      ]
+    });
+
     // ==========================================
     // 3. MEMBERSHIP DISTRIBUTION
     // ==========================================
@@ -91,13 +107,73 @@ exports.getReportsData = async (req, res) => {
       ],
       include: [{
         model: MembershipPlan,
-        attributes: [] 
+        attributes: []
       }],
       group: ['MembershipPlan.name', 'MembershipPlan.price'],
       raw: true
     });
 
-    // Response
+    // ==========================================
+    // 4. RETENTION & CHURN (New)
+    // ==========================================
+
+    // A. Churn Count (Cancelled/Expired in range)
+    const churnCount = await UserSubscription.count({
+      where: {
+        status: { [Op.in]: ['CANCELLED', 'EXPIRED'] },
+        end_date: { [Op.between]: [start, end] }
+      }
+    });
+
+    // B. At-Risk Members (Active but no attendance in last 21 days)
+    const twentyOneDaysAgo = new Date();
+    twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 21);
+
+    // Get all active members
+    const activeMembers = await User.findAll({
+      where: { role: 'MEMBER', is_deleted: false, status: true },
+      attributes: ['user_id', 'name', 'email', 'phone']
+    });
+
+    // Get members who visited in last 21 days
+    const recentVisitors = await Attendance.findAll({
+      attributes: ['member_id'],
+      where: {
+        attendance_date: { [Op.gte]: twentyOneDaysAgo }
+      },
+      group: ['member_id'],
+      raw: true
+    });
+    const recentVisitorIds = new Set(recentVisitors.map(v => v.member_id));
+
+    // Filter to find who is NOT in recent visitors
+    const atRiskList = activeMembers
+      .filter(m => !recentVisitorIds.has(m.user_id))
+      .map(m => ({
+        user_id: m.user_id,
+        name: m.name,
+        email: m.email,
+        phone: m.phone
+      }));
+
+    // C. Expiry Forecast (Expiring in next 30 days)
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const todayDate = new Date();
+
+    const expiringSoon = await UserSubscription.findAll({
+      where: {
+        status: 'ACTIVE',
+        end_date: { [Op.between]: [todayDate, thirtyDaysFromNow] }
+      },
+      include: [
+        { model: sequelize.models.User, attributes: ['name', 'email', 'phone'] },
+        { model: MembershipPlan, attributes: ['name'] }
+      ],
+      order: [['end_date', 'ASC']]
+    });
+
+
     res.json({
       financial: financialData.map(d => ({
         date: d.date,
@@ -112,6 +188,13 @@ exports.getReportsData = async (req, res) => {
         date: d.attendance_date,
         count: parseInt(d.count)
       })),
+      attendance_logs: memberLogs.map(log => ({
+        id: log.attendance_id,
+        date: log.attendance_date,
+        check_in: log.check_in,
+        member_name: log.User ? log.User.name : 'Unknown',
+        status: log.status
+      })),
       peak_hours: peakHours.map(h => ({
         hour: `${h.hour}:00`,
         count: parseInt(h.count)
@@ -121,7 +204,21 @@ exports.getReportsData = async (req, res) => {
         plan_price: parseFloat(m.plan_price || 0),
         member_count: parseInt(m.member_count),
         estimated_value: parseFloat(m.plan_price || 0) * parseInt(m.member_count)
-      }))
+      })),
+      retention: {
+        churn_count: churnCount,
+        at_risk_count: atRiskList.length,
+        at_risk_members: atRiskList,
+        expiring_count: expiringSoon.length,
+        expiring_members: expiringSoon.map(s => ({
+          subscription_id: s.subscription_id,
+          member_name: s.User?.name || 'Unknown',
+          plan_name: s.MembershipPlan?.name || 'Plan',
+          end_date: s.end_date,
+          email: s.User?.email,
+          phone: s.User?.phone
+        }))
+      }
     });
 
   } catch (err) {
