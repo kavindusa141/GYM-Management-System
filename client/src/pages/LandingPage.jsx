@@ -7,15 +7,7 @@ import {
 } from 'lucide-react';
 
 import GYM_Background from '../assets/images/GYM_Background.jpg';
-import gym1 from '../assets/images/gym1.jpeg';
-import gym2 from '../assets/images/gym2.jpeg';
-import gym3 from '../assets/images/gym3.jpeg';
-import gym4 from '../assets/images/gym4.jpeg';
-import gym5 from '../assets/images/gym5.jpeg';
-import gym6 from '../assets/images/gym6.jpeg';
-import gym7 from '../assets/images/gym7.jpeg';
-import gym8 from '../assets/images/gym8.jpeg';
-import gym9 from '../assets/images/gym9.jpeg';
+import logo from '../assets/images/logo.png';
 
 // --- ANIMATION VARIANTS ---
 const fadeUp = {
@@ -58,17 +50,11 @@ export default function LandingPage() {
   const yBg = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacityBg = useTransform(scrollYProgress, [0, 1], [0.5, 0]);
 
-  const galleryImages = [
-    { url: gym1, title: "Main Strength Zone", subtitle: "Hammer Strength Certified" },
-    { url: gym2, title: "Free Weights Area", subtitle: "Dumbbells up to 50kg" },
-    { url: gym3, title: "Personal Training", subtitle: "1-on-1 Elite Coaching" },
-    { url: gym4, title: "Cardio Theater", subtitle: "Life Fitness Consoles" },
-    { url: gym5, title: "CrossFit Box", subtitle: "Functional Training" },
-    { url: gym6, title: "Group Studio", subtitle: "Yoga & Pilates" },
-    { url: gym7, title: "HIIT Zone", subtitle: "High Intensity Training" },
-    { url: gym8, title: "Recovery Lounge", subtitle: "Post-Workout Relax" },
-    { url: gym9, title: "Premium Amenities", subtitle: "Luxury Locker Rooms" }
-  ];
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [loadingGallery, setLoadingGallery] = useState(true);
+
+  // Derive the server URL to render uploaded images properly
+  const SERVER_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
 
   useEffect(() => {
     api.get('/settings/public-config')
@@ -79,6 +65,11 @@ export default function LandingPage() {
       .then(res => setPlans(res.data))
       .catch(console.error)
       .finally(() => setLoadingPlans(false));
+
+    api.get('/gallery')
+      .then(res => setGalleryImages(res.data))
+      .catch(console.error)
+      .finally(() => setLoadingGallery(false));
 
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
@@ -117,9 +108,7 @@ export default function LandingPage() {
       >
         <div className="container mx-auto px-6 flex items-center justify-between">
           <Link to="/" className="text-2xl font-black tracking-tighter flex items-center gap-3 group z-50">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white uppercase shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300">
-              {config.system_name.charAt(0)}
-            </div>
+            <img src={logo} alt="Royal Fitness Kingdom" className="h-16 w-auto object-contain" />
             <span className="uppercase text-white group-hover:text-blue-400 transition-colors">{config.system_name}</span>
           </Link>
 
@@ -278,30 +267,40 @@ export default function LandingPage() {
         </div>
 
         {/* HORIZONTAL SWIPE GALLERY */}
-        <motion.div
-          initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1 }}
-          className="flex overflow-x-auto gap-6 px-6 pb-16 snap-x snap-mandatory scroll-smooth no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {galleryImages.map((img, idx) => (
-            <motion.div
-              key={idx}
-              whileHover={{ scale: 0.98 }}
-              className="relative shrink-0 w-[85vw] md:w-[500px] lg:w-[600px] h-[400px] lg:h-[550px] rounded-3xl overflow-hidden snap-center group cursor-pointer border border-white/5 shadow-2xl"
-            >
-              <img src={img.url} alt={img.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-500"></div>
+        {loadingGallery ? (
+          <div className="flex justify-center py-20 pb-32">
+            <div className="w-12 h-12 border-4 border-white/10 border-t-blue-500 rounded-full animate-spin"></div>
+          </div>
+        ) : galleryImages.length === 0 ? (
+          <div className="text-center text-slate-500 py-10 pb-32 font-bold uppercase tracking-widest">
+            More inspiring spaces coming soon.
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1 }}
+            className="flex overflow-x-auto gap-6 px-6 pb-16 snap-x snap-mandatory scroll-smooth no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {galleryImages.map((img) => (
+              <motion.div
+                key={img.id}
+                whileHover={{ scale: 0.98 }}
+                className="relative shrink-0 w-[85vw] md:w-[500px] lg:w-[600px] h-[400px] lg:h-[550px] rounded-3xl overflow-hidden snap-center group cursor-pointer border border-white/5 shadow-2xl bg-black/50 flex items-center justify-center"
+              >
+                <img src={img.image_url.startsWith('http') ? img.image_url : SERVER_URL + img.image_url} alt="Gallery" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-              <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
-                <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
-                  <Activity size={18} />
+                <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
+                  <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                    <Activity size={18} />
+                  </div>
+                  <h4 className="text-white font-black text-3xl mb-2">Facility View</h4>
+                  <p className="text-blue-400 text-sm font-bold tracking-widest uppercase">Premium Standard</p>
                 </div>
-                <h4 className="text-white font-black text-3xl mb-2">{img.title}</h4>
-                <p className="text-blue-400 text-sm font-bold tracking-widest uppercase">{img.subtitle}</p>
-              </div>
-            </motion.div>
-          ))}
-          <div className="w-12 shrink-0"></div>
-        </motion.div>
+              </motion.div>
+            ))}
+            <div className="w-12 shrink-0"></div>
+          </motion.div>
+        )}
       </section>
 
       {/* --- PRICING SECTION --- */}
@@ -448,9 +447,9 @@ export default function LandingPage() {
       <footer className="bg-slate-950 text-slate-500 py-16 border-t border-white/5 relative z-10">
         <div className="container mx-auto px-6 grid md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-2">
-            <div className="text-2xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">{config.system_name.charAt(0)}</div>
-              {config.system_name}
+            <div className="mb-6 flex items-center gap-4">
+              <img src={logo} alt="Royal Fitness Kingdom" className="h-20 w-auto object-contain" />
+              <div className="text-3xl font-black text-white uppercase tracking-widest leading-none">{config.system_name}</div>
             </div>
             <p className="max-w-sm text-sm font-medium leading-relaxed">
               Premium fitness facilities engineered for absolute performance. Don't settle for average.

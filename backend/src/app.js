@@ -39,6 +39,7 @@ const settingsRoutes = require("./routes/settings.routes");
 const availabilityRoutes = require("./routes/availability.routes");
 const assignmentRoutes = require("./routes/assignment.routes");
 const progressRoutes = require("./routes/progress.routes");
+const galleryRoutes = require("./routes/gallery.routes");
 
 
 // ===============================
@@ -47,7 +48,7 @@ const progressRoutes = require("./routes/progress.routes");
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true
 }));
 app.use(express.json());
@@ -69,16 +70,12 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/progress", progressRoutes);
+app.use("/api/gallery", galleryRoutes);
 
 // Dashboard routes (shared but role-protected internally)
 app.use("/api/admin", dashboardRoutes);
 app.use("/api/member", dashboardRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-
-// ===============================
-// STATIC FILE SERVING (CRITICAL)
-// ===============================
-app.use("/uploads", express.static("uploads"));
 
 // ===============================
 // ROOT TEST ROUTE

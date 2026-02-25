@@ -3,6 +3,7 @@ import api from "../../services/api";
 import { FileText, Download, Printer, ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import logo from '../../assets/images/logo.png';
 
 export default function Receipt() {
   const { payment_id } = useParams();
@@ -27,19 +28,19 @@ export default function Receipt() {
     try {
       setDownloading(true);
       const response = await api.get(`/payments/receipt/${payment_id}/download-pdf`);
-      
+
       if (response.data.html) {
         // Create a blob from the HTML
         const element = document.createElement('div');
         element.innerHTML = response.data.html;
-        
+
         // Create an iframe to print
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         document.body.appendChild(iframe);
         iframe.contentDocument.write(response.data.html);
         iframe.contentDocument.close();
-        
+
         // Trigger print dialog for PDF save
         iframe.onload = () => {
           iframe.contentWindow.print();
@@ -90,10 +91,10 @@ export default function Receipt() {
 
       {/* Receipt Container */}
       <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-        
+
         {/* Header */}
-        <div className="text-center border-b-4 border-blue-600 pb-6 mb-6">
-          <h1 className="text-3xl font-black text-blue-600">🏋️ ROYAL FITNESS KINGDOM</h1>
+        <div className="flex flex-col items-center border-b-4 border-blue-600 pb-6 mb-6">
+          <img src={logo} alt="Royal Fitness Kingdom" className="h-24 w-auto object-contain mb-2" />
           <p className="text-sm text-gray-500 mt-1">Premium Gym & Fitness Center</p>
         </div>
 
@@ -147,8 +148,8 @@ export default function Receipt() {
             <div className="flex justify-between">
               <span className="font-bold text-gray-700">Payment Method:</span>
               <span className="text-gray-900">
-                {receipt.method === 'CASH' ? '💵 Cash (Desk)' : 
-                 receipt.method === 'TRANSFER' ? '🏦 Bank Transfer' : '💳 Card'}
+                {receipt.method === 'CASH' ? '💵 Cash (Desk)' :
+                  receipt.method === 'TRANSFER' ? '🏦 Bank Transfer' : '💳 Card'}
               </span>
             </div>
             {receipt.reference && (

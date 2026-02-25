@@ -179,7 +179,6 @@ exports.getMyBookings = async (req, res) => {
         const cls = booking.GymClass;
         if (!cls) return null; // Skip orphaned bookings
 
-
         const dateStr = typeof booking.booking_date === 'string'
           ? booking.booking_date
           : new Date(booking.booking_date).toISOString().split('T')[0];
@@ -209,6 +208,30 @@ exports.getMyBookings = async (req, res) => {
     res.json(formatted);
   } catch (err) {
     console.error("Get My Bookings Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 4. Get My Class History (Attended Classes)
+exports.getMyClassHistory = async (req, res) => {
+  try {
+    const history = await ClassBooking.findAll({
+      where: { user_id: req.user.id, status: 'ATTENDED' },
+      include: [{
+        model: GymClass,
+        attributes: ['title', 'start_time', 'end_time', 'class_date', 'duration', 'day_of_week'],
+        include: [{ model: User, as: 'Trainer', attributes: ['name'] }]
+      }],
+      order: [['booking_date', 'DESC']]
+    });
+
+    const formatted = history.map(booking => {
+      return booking.toJSON();
+    });
+
+    res.json(formatted);
+  } catch (err) {
+    console.error("Get My Class History Error:", err);
     res.status(500).json({ error: err.message });
   }
 };

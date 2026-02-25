@@ -101,8 +101,8 @@ exports.createPayment = async (req, res) => {
     // ===============================
     // HANDLE SLIP UPLOAD
     // ===============================
-    const slip_url = req.file ? `/uploads/${req.file.filename}` : null;
-    
+    const slip_url = req.file ? req.file.path : null;
+
     console.log(`[PAYMENT] User: ${user_id}, Method: ${payment_method}, File received: ${req.file ? 'YES' : 'NO'}, Slip URL: ${slip_url}`);
 
     // ===============================
@@ -110,9 +110,19 @@ exports.createPayment = async (req, res) => {
     // ===============================
     let status = 'PENDING';
 
-    // Admin-created payment → auto verified
-    if (req.user && (req.user.role === 'ADMIN' || req.user.role === 'STAFF')) {
-      status = 'VERIFIED';
+    if (req.user) {
+      if (req.user.role === 'ADMIN') {
+        // Admin-created payment → auto verified
+        status = 'VERIFIED';
+      } else if (req.user.role === 'STAFF') {
+        // Staff-created payment: 
+        // If slip uploaded (transfer), needs admin approval
+        if (payment_method === 'TRANSFER' || slip_url) {
+          status = 'PENDING';
+        } else {
+          status = 'VERIFIED';
+        }
+      }
     }
 
     // Card payments → auto completed
@@ -192,13 +202,13 @@ exports.verifyPayment = async (req, res) => {
 
     // 3️⃣ Reject payment
     if (action === "REJECT") {
-        payment.status = "FAILED";
-        payment.rejection_reason = reason || "Payment rejected by admin"; // Store reason
-        await payment.save();
+      payment.status = "FAILED";
+      payment.rejection_reason = reason || "Payment rejected by admin"; // Store reason
+      await payment.save();
 
-        return res.json({
-            message: "Payment rejected",
-        });
+      return res.json({
+        message: "Payment rejected",
+      });
     }
 
     return res.status(400).json({ message: "Invalid action" });
@@ -216,40 +226,40 @@ exports.verifyPayment = async (req, res) => {
  * Allows members to upload a new slip for rejected payments
  */
 exports.reuploadSlip = async (req, res) => {
-    try {
-        const { payment_id } = req.params;
-        const user_id = req.user.id; 
+  try {
+    const { payment_id } = req.params;
+    const user_id = req.user.id;
 
-        // 1. Find the payment ensuring it belongs to the user
-        const payment = await Payment.findOne({ where: { payment_id, user_id } });
+    // 1. Find the payment ensuring it belongs to the user
+    const payment = await Payment.findOne({ where: { payment_id, user_id } });
 
-        if (!payment) {
-            return res.status(404).json({ message: "Payment not found" });
-        }
-
-        // 2. Ensure it is currently FAILED
-        if (payment.status !== 'FAILED') {
-            return res.status(400).json({ message: "You can only re-upload slips for rejected payments." });
-        }
-
-        // 3. Validate File
-        if (!req.file) {
-            return res.status(400).json({ message: "No file uploaded" });
-        }
-
-        // 4. Update Payment
-        payment.slip_url = `/uploads/${req.file.filename}`;
-        payment.status = 'PENDING'; // Reset status to PENDING
-        payment.rejection_reason = null; // Clear previous rejection reason
-        
-        await payment.save();
-
-        res.json({ message: "Slip re-uploaded successfully! Waiting for approval." });
-
-    } catch (err) {
-        console.error("Re-upload Error:", err);
-        res.status(500).json({ error: err.message });
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found" });
     }
+
+    // 2. Ensure it is currently FAILED
+    if (payment.status !== 'FAILED') {
+      return res.status(400).json({ message: "You can only re-upload slips for rejected payments." });
+    }
+
+    // 3. Validate File
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // 4. Update Payment
+    payment.slip_url = req.file.path;
+    payment.status = 'PENDING'; // Reset status to PENDING
+    payment.rejection_reason = null; // Clear previous rejection reason
+
+    await payment.save();
+
+    res.json({ message: "Slip re-uploaded successfully! Waiting for approval." });
+
+  } catch (err) {
+    console.error("Re-upload Error:", err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 /**
@@ -263,8 +273,8 @@ exports.getAllPayments = async (req, res) => {
     const where = {};
 
     // Members see only their own payments
-    if (req.user.role === "MEMBER") {
-      where.user_id = req.user.user_id || req.user.id;
+    if (req.user?.role === "MEMBER") {
+      where.user_id = req.user?.user_id || req.user?.id;
     }
 
     const payments = await Payment.findAll({

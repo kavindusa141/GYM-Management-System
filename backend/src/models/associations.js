@@ -11,6 +11,7 @@ const Attendance = require('./Attendance');
 const ProgressLog = require('./ProgressLog');
 const WorkoutLog = require('./WorkoutLog');
 const WorkoutExercise = require('./WorkoutExercise');
+const Gallery = require('./Gallery');
 
 // User <-> MemberAssignment
 User.hasMany(MemberAssignment, { foreignKey: 'member_id', as: 'MemberAssignments' });
@@ -79,5 +80,5 @@ WorkoutLog.belongsTo(WorkoutPlan, { foreignKey: 'plan_id', as: 'Plan' });
 
 module.exports = {
     User, MemberAssignment, UserSubscription, MembershipPlan, MemberProfile, WorkoutPlan,
-    Payment, ClassBooking, GymClass, Attendance, ProgressLog, WorkoutLog, WorkoutExercise
+    Payment, ClassBooking, GymClass, Attendance, ProgressLog, WorkoutLog, WorkoutExercise, Gallery
 };

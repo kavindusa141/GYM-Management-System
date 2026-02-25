@@ -3,6 +3,7 @@ import {
   LayoutDashboard, QrCode, LogOut, Menu, X, Settings, Users, UserPlus, CreditCard, Calendar, BarChart2
 } from 'lucide-react';
 import { useState } from 'react';
+import logo from '../../assets/images/logo.png';
 
 export default function StaffLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -41,14 +42,9 @@ export default function StaffLayout() {
       `}>
 
         {/* Header */}
-        <div className="p-6 flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-            <span className="font-black text-lg">R</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-white tracking-tight">Royal Fitness</h1>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Staff Portal</span>
-          </div>
+        <div className="p-6 flex flex-col items-center gap-2 shrink-0 bg-white/5 rounded-b-xl mx-2 mb-2">
+          <img src={logo} alt="Royal Fitness Kingdom" className="h-24 w-auto object-contain" />
+          <span className="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-[10px] font-bold uppercase tracking-wider">Staff Portal</span>
         </div>
 
         {/* Navigation */}
@@ -123,10 +119,7 @@ export default function StaffLayout() {
         {/* Mobile Header */}
         <header className="lg:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              <span className="font-bold">R</span>
-            </div>
-            <span className="font-bold text-gray-900">Royal Fitness</span>
+            <img src={logo} alt="Royal Fitness Kingdom" className="h-14 w-auto object-contain" />
           </div>
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-gray-500 rounded-lg hover:bg-gray-100">
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}

@@ -11,6 +11,7 @@ import {
   Users
 } from 'lucide-react';
 import { useState } from 'react';
+import logo from '../../assets/images/logo.png';
 
 export default function TrainerLayout() {
   const location = useLocation();
@@ -36,14 +37,9 @@ export default function TrainerLayout() {
       {/* SIDEBAR */}
       <aside className="w-72 bg-slate-900 flex flex-col h-full border-r border-slate-800 shadow-xl z-20">
 
-        <div className="p-6 flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-            <span className="font-black text-lg">R</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-white tracking-tight">Royal Fitness</h1>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Trainer Portal</span>
-          </div>
+        <div className="p-6 flex flex-col items-center gap-2 shrink-0 bg-white/5 rounded-b-xl mx-2 mb-2">
+          <img src={logo} alt="Royal Fitness Kingdom" className="h-24 w-auto object-contain" />
+          <span className="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-[10px] font-bold uppercase tracking-wider">Trainer Portal</span>
         </div>
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar py-4">

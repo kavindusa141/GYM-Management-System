@@ -332,7 +332,9 @@ exports.updateClassStatus = async (req, res) => {
       }
     }
 
-    // Track who cancelled/completed the class
+    // ============================================================
+    // UPDATE CLASS STATUS
+    // ============================================================
     const updateData = { status };
     if (status === 'CANCELLED') {
       updateData.cancelled_by_id = req.user.id;
@@ -342,6 +344,47 @@ exports.updateClassStatus = async (req, res) => {
 
     const oldStatus = cls.status;
     await cls.update(updateData);
+
+    // ============================================================
+    // NEW LOGIC: AUTO-MARK ATTENDANCE ON COMPLETION
+    // ============================================================
+    if (status === 'COMPLETED') {
+      const Attendance = require("../models/Attendance");
+
+      // Find all confirmed bookings for this class
+      const confirmedBookings = await ClassBooking.findAll({
+        where: { class_id: id, status: 'CONFIRMED' }
+      });
+
+      if (confirmedBookings.length > 0) {
+        // Extract all user IDs who booked
+        const userIds = confirmedBookings.map(b => b.user_id);
+
+        // Find which of these users actually checked into the gym on the class date
+        const gymCheckins = await Attendance.findAll({
+          where: {
+            member_id: { [Op.in]: userIds },
+            attendance_date: dateStr, // The date of the class
+            status: { [Op.ne]: 'ABSENT' }
+          }
+        });
+
+        // Create a Set of user IDs who checked in for O(1) lookup
+        const checkedInUserIds = new Set(gymCheckins.map(a => a.member_id));
+
+        // Update bookings: if they checked in, mark as ATTENDED. Otherwise, they missed it (leave currently as CONFIRMED or optionally a MISSED status, but we will keep schema stable).
+        // Let's just update the ones who attended to be safe.
+        const attendeesToUpdate = confirmedBookings.filter(b => checkedInUserIds.has(b.user_id));
+
+        if (attendeesToUpdate.length > 0) {
+          const bookingIdsToUpdate = attendeesToUpdate.map(b => b.booking_id);
+          await ClassBooking.update(
+            { status: 'ATTENDED' },
+            { where: { booking_id: { [Op.in]: bookingIdsToUpdate } } }
+          );
+        }
+      }
+    }
 
     // Re-fetch to get updated data
     const updatedClass = await GymClass.findByPk(id, {

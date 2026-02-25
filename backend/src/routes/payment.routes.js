@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { 
-  createPayment, 
-  getAllPayments, 
+const {
+  createPayment,
+  getAllPayments,
   verifyPayment,
   getPaymentReceipt,
   downloadReceiptPDF,
@@ -11,13 +11,17 @@ const {
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
 // --- MULTER SETUP ---
+// --- MULTER SETUP (CLOUDINARY) ---
 const multer = require("multer");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, "slip-" + Date.now() + path.extname(file.originalname))
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "gym_slips", // The folder in cloudinary
+    allowed_formats: ["jpg", "png", "jpeg", "webp", "pdf"]
+  }
 });
 
 const upload = multer({ storage });

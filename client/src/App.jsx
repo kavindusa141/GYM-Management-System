@@ -42,6 +42,7 @@ import Reports from './pages/admin/Reports';
 import Equipment from './pages/admin/Equipment';
 import AdminSettings from './pages/admin/Settings';
 import AssignTrainer from './pages/admin/AssignTrainer';
+import GalleryManagement from './pages/admin/GalleryManagement';
 
 // Trainer Pages
 import TrainerDashboard from './pages/trainer/Dashboard';
@@ -86,9 +87,9 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-      {/* Receipt Route - Shared for both ADMIN and MEMBER */}
+      {/* Receipt Route - Shared for both ADMIN, MEMBER, and STAFF */}
       <Route path="/receipt/:payment_id" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER']}>
+        <ProtectedRoute allowedRoles={['ADMIN', 'MEMBER', 'STAFF']}>
           <Receipt />
         </ProtectedRoute>
       } />
@@ -134,6 +135,7 @@ export default function App() {
         <Route path="classes/:id/edit" element={<ScheduleClass />} />
         <Route path="reports" element={<Reports />} />
         <Route path="equipment" element={<Equipment />} />
+        <Route path="gallery" element={<GalleryManagement />} />
         <Route path="settings" element={<AdminSettings />} />
 
       </Route>

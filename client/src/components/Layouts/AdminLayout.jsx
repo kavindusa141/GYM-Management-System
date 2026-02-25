@@ -2,9 +2,10 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CreditCard, LogOut,
   Menu, X, Calendar, ClipboardCheck,
-  TrendingUp, Wrench, Settings
+  TrendingUp, Wrench, Settings, Image as ImageIcon
 } from 'lucide-react';
 import { useState } from 'react';
+import logo from '../../assets/images/logo.png';
 
 export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -21,8 +22,8 @@ export default function AdminLayout() {
   const getLinkClass = (path) => {
     const isActive = location.pathname === path;
     return `flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-all ${isActive
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' // Active: Blue with Glow
-        : 'text-slate-400 hover:bg-slate-800 hover:text-white' // Inactive: Slate text, Dark Hover
+      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' // Active: Blue with Glow
+      : 'text-slate-400 hover:bg-slate-800 hover:text-white' // Inactive: Slate text, Dark Hover
       }`;
   };
 
@@ -44,14 +45,9 @@ export default function AdminLayout() {
       `}>
 
         {/* 1. FIXED HEADER (Logo) */}
-        <div className="p-6 flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-            <span className="font-black text-lg">R</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-white tracking-tight">Royal Fitness</h1>
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Admin Panel</span>
-          </div>
+        <div className="p-6 flex flex-col items-center gap-2 shrink-0 bg-white/5 rounded-b-xl mx-2 mb-2">
+          <img src={logo} alt="Royal Fitness Kingdom" className="h-24 w-auto object-contain" />
+          <span className="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-[10px] font-bold uppercase tracking-wider">Admin Panel</span>
         </div>
 
         {/* 2. SCROLLABLE NAVIGATION */}
@@ -120,6 +116,11 @@ export default function AdminLayout() {
             System
           </div>
 
+          <Link to="/admin/gallery" className={getLinkClass('/admin/gallery')}>
+            <ImageIcon size={18} />
+            Gallery Config
+          </Link>
+
           <Link to="/admin/settings" className={getLinkClass('/admin/settings')}>
             <Settings size={18} />
             Settings & Config
@@ -144,10 +145,7 @@ export default function AdminLayout() {
         {/* Mobile Header */}
         <header className="lg:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              <span className="font-bold">R</span>
-            </div>
-            <span className="font-bold text-gray-900">Royal Fitness</span>
+            <img src={logo} alt="Royal Fitness Kingdom" className="h-14 w-auto object-contain" />
           </div>
           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-gray-500 rounded-lg hover:bg-gray-100">
             {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
