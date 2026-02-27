@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { Calendar, Clock, Users, XCircle, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Users, XCircle, AlertCircle, CheckCircle, RefreshCw, X, Eye } from 'lucide-react';
 
 export default function MyClasses() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('SCHEDULED'); // SCHEDULED, COMPLETED, CANCELLED, ALL
+
+  const [showBookingsModal, setShowBookingsModal] = useState(false);
+  const [selectedClassBookings, setSelectedClassBookings] = useState(null);
 
   useEffect(() => {
     fetchClasses();
@@ -61,10 +64,10 @@ export default function MyClasses() {
     }
 
     if (!window.confirm(message)) return;
-    
+
     try {
       const response = await api.put(`/classes/${classId}/status`, { status: newStatus });
-      
+
       if (response.data?.timeInfo) {
         const { hoursUntilStart } = response.data.timeInfo;
         if (newStatus === 'CANCELLED' && hoursUntilStart < 12) {
@@ -78,7 +81,7 @@ export default function MyClasses() {
       }
 
       toast.success(`Class marked as ${newStatus.toLowerCase()}`);
-      
+
       // Update locally
       setClasses(classes.map(c => {
         if (c.class_id === classId) {
@@ -109,9 +112,26 @@ export default function MyClasses() {
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
+  // 3. Get Initials from Name
+  const getInitials = (name) => {
+    if (!name) return 'NA';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  };
+
+  // View Bookings
+  const handleViewBookings = (cls) => {
+    setSelectedClassBookings(cls);
+    setShowBookingsModal(true);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      
+
       <div>
         <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
           <Calendar className="text-blue-600" size={28} /> My Class Schedule
@@ -125,11 +145,10 @@ export default function MyClasses() {
           <button
             key={status}
             onClick={() => setFilterStatus(status)}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              filterStatus === status 
-                ? 'bg-blue-600 text-white shadow-md' 
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${filterStatus === status
+                ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             {status === 'SCHEDULED' ? 'Upcoming' : status}
           </button>
@@ -140,7 +159,7 @@ export default function MyClasses() {
         <div className="text-center py-20 text-gray-400">Loading schedule...</div>
       ) : filteredClasses.length === 0 ? (
         <div className="p-10 text-center border-2 border-dashed border-gray-200 rounded-xl">
-          <Calendar size={32} className="mx-auto text-gray-300 mb-2"/>
+          <Calendar size={32} className="mx-auto text-gray-300 mb-2" />
           <p className="text-gray-500 font-medium">
             {filterStatus === 'ALL' ? 'No classes assigned yet' : `No ${filterStatus.toLowerCase()} classes`}
           </p>
@@ -152,27 +171,26 @@ export default function MyClasses() {
             const upcoming = isUpcoming(cls.class_date, cls.start_time);
 
             return (
-              <div 
-                key={cls.class_id} 
-                className={`relative bg-white p-6 rounded-2xl shadow-sm border transition-all ${
-                  cls.status === 'CANCELLED' ? 'border-red-100 bg-red-50/30 opacity-75' : 
-                  cls.status === 'COMPLETED' ? 'border-green-100 bg-green-50/30' :
-                  'border-gray-100 hover:shadow-md'
-                }`}
+              <div
+                key={cls.class_id}
+                className={`relative bg-white p-6 rounded-2xl shadow-sm border transition-all ${cls.status === 'CANCELLED' ? 'border-red-100 bg-red-50/30 opacity-75' :
+                    cls.status === 'COMPLETED' ? 'border-green-100 bg-green-50/30' :
+                      'border-gray-100 hover:shadow-md'
+                  }`}
               >
                 {/* Status Badge */}
                 <div className="absolute top-4 right-4">
                   {cls.status === 'CANCELLED' ? (
                     <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                      <XCircle size={12}/> Cancelled
+                      <XCircle size={12} /> Cancelled
                     </span>
                   ) : cls.status === 'COMPLETED' ? (
                     <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                      <CheckCircle size={12}/> Completed
+                      <CheckCircle size={12} /> Completed
                     </span>
                   ) : (
                     <span className="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                      <CheckCircle size={12}/> Scheduled
+                      <CheckCircle size={12} /> Scheduled
                     </span>
                   )}
                 </div>
@@ -184,24 +202,28 @@ export default function MyClasses() {
                 {cls.description && (
                   <p className="text-xs text-gray-500 mb-4">{cls.description}</p>
                 )}
-                
+
                 <div className="space-y-3 mt-4">
                   <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <Calendar size={16} className="text-blue-500 flex-shrink-0"/>
+                    <Calendar size={16} className="text-blue-500 flex-shrink-0" />
                     <span className="font-medium">{formatDate(cls.class_date)}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <Clock size={16} className="text-blue-500 flex-shrink-0"/>
+                    <Clock size={16} className="text-blue-500 flex-shrink-0" />
                     <span className="font-medium">
                       {formatTime(cls.start_time)} - {formatTime(cls.end_time)} ({cls.duration || 60} mins)
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <Users size={16} className="text-blue-500 flex-shrink-0"/>
-                    <span className="font-medium">
-                      {cls.booking_count || 0} / {cls.capacity} Members Booked
+                  <div
+                    className="flex items-center gap-3 text-sm text-gray-600 cursor-pointer hover:text-blue-600 group"
+                    onClick={() => handleViewBookings(cls)}
+                    title="Click to view booked members"
+                  >
+                    <Users size={16} className="text-blue-500 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <span className="font-medium underline decoration-blue-200 underline-offset-2">
+                      {cls.booking_count || 0} / {cls.capacity} Members Booked <Eye size={14} className="inline ml-1 mb-0.5 text-blue-500 opacity-50 group-hover:opacity-100 transition-opacity" />
                     </span>
                   </div>
                 </div>
@@ -210,10 +232,9 @@ export default function MyClasses() {
                 {cls.capacity > 0 && (
                   <div className="mt-4">
                     <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full transition-all ${
-                          cls.is_full ? 'bg-red-500' : 'bg-blue-500'
-                        }`}
+                      <div
+                        className={`h-full rounded-full transition-all ${cls.is_full ? 'bg-red-500' : 'bg-blue-500'
+                          }`}
                         style={{ width: `${Math.min(((cls.booking_count || 0) / cls.capacity) * 100, 100)}%` }}
                       />
                     </div>
@@ -227,7 +248,7 @@ export default function MyClasses() {
                       <span className="font-semibold">Cancelled by:</span> {cls.cancelled_by_name}
                       {cls.cancelled_at && (
                         <>
-                          <br/>
+                          <br />
                           <span className="text-red-600">{new Date(cls.cancelled_at).toLocaleString()}</span>
                         </>
                       )}
@@ -243,7 +264,7 @@ export default function MyClasses() {
                     </p>
                     {cls.hours_until_start < 12 && (
                       <p className="text-xs text-red-600 mt-1">
-                        <AlertCircle size={12} className="inline mr-1"/> Cannot cancel or restore within 12 hours of class start time
+                        <AlertCircle size={12} className="inline mr-1" /> Cannot cancel or restore within 12 hours of class start time
                       </p>
                     )}
                   </div>
@@ -255,38 +276,38 @@ export default function MyClasses() {
                     <>
                       {/* Show "Mark Completed" button if class has ended */}
                       {cls.can_mark_complete ? (
-                        <button 
+                        <button
                           onClick={() => handleStatusUpdate(cls.class_id, 'COMPLETED', cls)}
                           className="w-full py-2 bg-green-50 border border-green-200 text-green-600 rounded-lg text-sm font-bold hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
                           title="Mark class as completed after it ends"
                         >
-                          <CheckCircle size={16}/> Mark Completed
+                          <CheckCircle size={16} /> Mark Completed
                         </button>
                       ) : (
-                        <button 
+                        <button
                           disabled
                           className="w-full py-2 bg-gray-50 border border-gray-200 text-gray-400 rounded-lg text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2"
                           title="Class must end before marking as completed"
                         >
-                          <CheckCircle size={16}/> Mark Completed
+                          <CheckCircle size={16} /> Mark Completed
                         </button>
                       )}
 
                       {/* Show cancel button with 12-hour validation */}
                       {cls.can_cancel_12h ? (
-                        <button 
+                        <button
                           onClick={() => handleStatusUpdate(cls.class_id, 'CANCELLED', cls)}
                           className="w-full py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
                         >
-                          <XCircle size={16}/> Cancel Class
+                          <XCircle size={16} /> Cancel Class
                         </button>
                       ) : (
-                        <button 
+                        <button
                           disabled
                           className="w-full py-2 bg-gray-50 border border-gray-200 text-gray-400 rounded-lg text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2"
                           title={`Cannot cancel: Class starts in ${cls.hours_until_start} hours. Must cancel 12 hours before.`}
                         >
-                          <XCircle size={16}/> Cancel Class (in {cls.hours_until_start}h)
+                          <XCircle size={16} /> Cancel Class (in {cls.hours_until_start}h)
                         </button>
                       )}
                     </>
@@ -295,36 +316,90 @@ export default function MyClasses() {
                   {cls.status === 'CANCELLED' && (
                     <>
                       {cls.can_restore_12h ? (
-                        <button 
+                        <button
                           onClick={() => handleStatusUpdate(cls.class_id, 'SCHEDULED', cls)}
                           className="w-full py-2 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
                         >
-                          <RefreshCw size={16}/> Restore Class
+                          <RefreshCw size={16} /> Restore Class
                         </button>
                       ) : (
-                        <button 
+                        <button
                           disabled
                           className="w-full py-2 bg-gray-50 border border-gray-200 text-gray-400 rounded-lg text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2"
                           title={`Cannot restore: Class starts in ${cls.hours_until_start} hours. Must restore 12 hours before.`}
                         >
-                          <RefreshCw size={16}/> Restore Class (in {cls.hours_until_start}h)
+                          <RefreshCw size={16} /> Restore Class (in {cls.hours_until_start}h)
                         </button>
                       )}
                     </>
                   )}
 
                   {cls.status === 'COMPLETED' && (
-                    <button 
+                    <button
                       onClick={() => handleStatusUpdate(cls.class_id, 'SCHEDULED', cls)}
                       className="w-full py-2 bg-gray-50 border border-gray-200 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
                     >
-                      <RefreshCw size={16}/> Revert
+                      <RefreshCw size={16} /> Revert
                     </button>
                   )}
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* VIEW BOOKINGS MODAL */}
+      {showBookingsModal && selectedClassBookings && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-2xl shadow-2xl animate-fade-in-up relative max-h-[90vh] flex flex-col">
+            <button
+              onClick={() => setShowBookingsModal(false)}
+              className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="mb-6 border-b pb-4">
+              <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                <Users className="text-blue-600" /> Booked Members
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {selectedClassBookings.title} • {new Date(selectedClassBookings.class_date).toLocaleDateString()} • {formatTime(selectedClassBookings.start_time)}
+              </p>
+            </div>
+
+            <div className="overflow-y-auto flex-1 pr-2">
+              {(!selectedClassBookings.ClassBookings || selectedClassBookings.ClassBookings.filter(b => b.status !== 'CANCELLED').length === 0) ? (
+                <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <p className="text-gray-500 font-medium">No members have booked this class yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedClassBookings.ClassBookings.filter(b => b.status !== 'CANCELLED').map((booking) => (
+                    <div key={booking.booking_id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                          {getInitials(booking.User?.name)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">{booking.User?.name || 'Unknown User'}</p>
+                          <p className="text-xs text-gray-500">{booking.User?.member_code || 'No Code'} • {booking.User?.phone || 'No Phone'} • {booking.User?.email || ''}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${booking.status === 'ATTENDED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                          {booking.status}
+                        </span>
+                        <p className="text-[10px] text-gray-400 mt-1">Booked: {new Date(booking.createdAt || booking.booking_date).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

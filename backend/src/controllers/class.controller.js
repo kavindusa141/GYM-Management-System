@@ -128,7 +128,10 @@ exports.getAllClasses = async (req, res) => {
     const classes = await GymClass.findAll({
       include: [
         { model: User, as: 'Trainer', attributes: ['name', 'user_id', 'member_code'] },
-        { model: ClassBooking }
+        {
+          model: ClassBooking,
+          include: [{ model: User, attributes: ['name', 'email', 'member_code', 'phone'] }]
+        }
       ],
       order: [['class_date', 'ASC'], ['start_time', 'ASC']]
     });
@@ -431,7 +434,10 @@ exports.getTrainerClasses = async (req, res) => {
       where: { trainer_id: req.user.id },
       include: [
         { model: User, as: 'Trainer', attributes: ['name', 'user_id'] },
-        { model: ClassBooking }
+        {
+          model: ClassBooking,
+          include: [{ model: User, attributes: ['name', 'email', 'member_code', 'phone'] }]
+        }
       ],
       order: [['class_date', 'ASC'], ['start_time', 'ASC']]
     });

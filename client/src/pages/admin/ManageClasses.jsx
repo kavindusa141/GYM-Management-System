@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import {
-  Calendar, Plus, Trash2, Edit2, Users, Ban, CheckCircle, AlertTriangle, Search, Filter, Clock, X, RefreshCw
+  Calendar, Plus, Trash2, Edit2, Users, Ban, CheckCircle, AlertTriangle, Search, Filter, Clock, X, RefreshCw, Eye
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import TrainerAvailabilityCalendar from '../../components/TrainerAvailabilityCalendar';
@@ -25,6 +25,9 @@ export default function ManageClasses() {
 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleTrainerId, setScheduleTrainerId] = useState(''); // ID only for selection
+
+  const [showBookingsModal, setShowBookingsModal] = useState(false);
+  const [selectedClassBookings, setSelectedClassBookings] = useState(null);
 
 
 
@@ -133,6 +136,12 @@ export default function ManageClasses() {
 
   // Submit Create/Edit Form
 
+
+  // View Bookings
+  const handleViewBookings = (cls) => {
+    setSelectedClassBookings(cls);
+    setShowBookingsModal(true);
+  };
 
   // Update Status (Complete/Cancel/Restore)
   const handleStatusUpdate = async (id, newStatus) => {
@@ -290,10 +299,10 @@ export default function ManageClasses() {
                 <div className="h-px bg-gray-100 w-full"></div>
 
                 {/* Booking Progress Bar */}
-                <div>
+                <div className="cursor-pointer" onClick={() => handleViewBookings(cls)} title="Click to view bookings">
                   <div className="flex justify-between text-xs font-bold mb-1">
-                    <span className={cls.is_full ? 'text-red-500' : 'text-gray-500'}>
-                      {cls.booking_count} / {cls.capacity} Booked
+                    <span className={cls.is_full ? 'text-red-500' : 'text-blue-600 hover:text-blue-800 underline'}>
+                      {cls.booking_count} / {cls.capacity} Booked <Eye size={12} className="inline ml-1 mb-0.5" />
                     </span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
@@ -369,8 +378,61 @@ export default function ManageClasses() {
             />
           </div>
         </div>
-      )
-      }
+      )}
+
+      {/* VIEW BOOKINGS MODAL */}
+      {showBookingsModal && selectedClassBookings && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-2xl shadow-2xl animate-fade-in-up relative max-h-[90vh] flex flex-col">
+            <button
+              onClick={() => setShowBookingsModal(false)}
+              className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="mb-6 border-b pb-4">
+              <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                <Users className="text-blue-600" /> Booked Members
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {selectedClassBookings.title} • {new Date(selectedClassBookings.class_date).toLocaleDateString()} • {formatTime(selectedClassBookings.start_time)}
+              </p>
+            </div>
+
+            <div className="overflow-y-auto flex-1 pr-2">
+              {(!selectedClassBookings.ClassBookings || selectedClassBookings.ClassBookings.filter(b => b.status !== 'CANCELLED').length === 0) ? (
+                <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <p className="text-gray-500 font-medium">No members have booked this class yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {selectedClassBookings.ClassBookings.filter(b => b.status !== 'CANCELLED').map((booking) => (
+                    <div key={booking.booking_id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                          {getInitials(booking.User?.name)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">{booking.User?.name || 'Unknown User'}</p>
+                          <p className="text-xs text-gray-500">{booking.User?.member_code || 'No Code'} • {booking.User?.phone || 'No Phone'} • {booking.User?.email || ''}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${booking.status === 'ATTENDED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                          {booking.status}
+                        </span>
+                        <p className="text-[10px] text-gray-400 mt-1">Booked: {new Date(booking.createdAt || booking.booking_date).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 }
