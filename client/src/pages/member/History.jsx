@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { Calendar, Clock, CheckCircle, TrendingUp, Timer, Activity } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, TrendingUp, Timer, Activity, Download } from 'lucide-react';
+import toast from 'react-hot-toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { useAuth } from '../../context/AuthContext';
 
 export default function History() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('GYM'); // 'GYM' | 'CLASS'
   const [gymHistory, setGymHistory] = useState([]);
   const [classHistory, setClassHistory] = useState([]);
@@ -40,6 +45,130 @@ export default function History() {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  const calculateDuration = (checkIn, checkOut) => {
+    if (!checkIn || !checkOut) return "-";
+    const [inH, inM] = checkIn.split(':').map(Number);
+    const [outH, outM] = checkOut.split(':').map(Number);
+    let diffMins = (outH * 60 + outM) - (inH * 60 + inM);
+    if (diffMins < 0) diffMins += 24 * 60; // crossed midnight
+    const h = Math.floor(diffMins / 60);
+    const m = diffMins % 60;
+    return `${h}h ${m}m`;
+  };
+
+  // --- REPORT EXPORT LOGIC ---
+  const downloadPDF = async () => {
+    try {
+      const doc = new jsPDF();
+      const date = new Date().toLocaleDateString();
+      const userName = user?.name || 'Member';
+      const userId = user?.id || 'Unknown';
+
+      const title = activeTab === 'GYM' ? 'My Attendance Report' : 'My Class History Report';
+
+      doc.setFontSize(16);
+      doc.setTextColor(30, 64, 175);
+      doc.text("Royal Fitness Kingdom", 14, 20);
+
+      doc.setFontSize(12);
+      doc.setTextColor(50);
+      doc.text(title, 14, 28);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Member: ${userName} (RFK-M-${userId})`, 14, 36);
+      doc.text(`Generated on: ${date}`, 14, 42);
+
+      let tableColumn = [];
+      let tableRows = [];
+
+      if (activeTab === 'GYM') {
+        tableColumn = ["Date", "Check-In", "Check-Out", "Duration", "Status"];
+        if (!gymHistory.length) return toast.error("No gym history data");
+        tableRows = gymHistory.map(a => [
+          new Date(a.attendance_date).toLocaleDateString(),
+          a.check_in || '-',
+          a.check_out || '-',
+          calculateDuration(a.check_in, a.check_out),
+          a.status
+        ]);
+      } else if (activeTab === 'CLASS') {
+        tableColumn = ["Date", "Class", "Time", "Trainer"];
+        if (!classHistory.length) return toast.error("No class history data");
+        tableRows = classHistory.map(c => [
+          new Date(c.booking_date).toLocaleDateString(),
+          c.GymClass?.title,
+          `${c.GymClass?.start_time.slice(0, 5)} - ${c.GymClass?.end_time.slice(0, 5)}`,
+          c.GymClass?.Trainer?.name || "Staff"
+        ]);
+      }
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 50,
+        theme: 'grid',
+        headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 9 },
+        alternateRowStyles: { fillColor: [249, 250, 251] }
+      });
+
+      doc.save(`My_${activeTab}_Report_${date.replace(/\//g, '-')}.pdf`);
+      toast.success("PDF Downloaded");
+    } catch (err) {
+      console.error(err);
+      toast.error("PDF generation failed");
+    }
+  };
+
+  const downloadCSV = async () => {
+    try {
+      let headers = [];
+      let rows = [];
+      const userName = user?.name || 'Member';
+      const userId = user?.id || 'Unknown';
+
+      if (activeTab === 'GYM') {
+        headers = ["Date", "Check-In", "Check-Out", "Duration", "Status"];
+        if (!gymHistory.length) return toast.error("No gym history data");
+        rows = gymHistory.map(a => [
+          new Date(a.attendance_date).toLocaleDateString(),
+          a.check_in || '-',
+          a.check_out || '-',
+          calculateDuration(a.check_in, a.check_out),
+          a.status
+        ]);
+      } else if (activeTab === 'CLASS') {
+        headers = ["Date", "Class", "Time", "Trainer"];
+        if (!classHistory.length) return toast.error("No class history data");
+        rows = classHistory.map(c => [
+          new Date(c.booking_date).toLocaleDateString(),
+          c.GymClass?.title,
+          `${c.GymClass?.start_time.slice(0, 5)} - ${c.GymClass?.end_time.slice(0, 5)}`,
+          c.GymClass?.Trainer?.name || "Staff"
+        ]);
+      }
+
+      if (rows.length === 0) return toast.error("No data");
+
+      let csvString = `Member Name: ${userName},Member ID: RFK-M-${userId}\n\n`;
+      csvString += [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `My_${activeTab}_Report.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("CSV Downloaded");
+    } catch (err) {
+      console.error(err);
+      toast.error("CSV generation failed");
+    }
   };
 
   // Helper to get stats based on active tab
@@ -83,26 +212,37 @@ export default function History() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 w-fit">
-        <button
-          onClick={() => setActiveTab('GYM')}
-          className={`px-6 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'GYM'
+      {/* Tabs and Export Controls */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100 w-fit">
+          <button
+            onClick={() => setActiveTab('GYM')}
+            className={`px-6 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'GYM'
               ? 'bg-blue-600 text-white shadow-md'
               : 'text-gray-500 hover:bg-gray-50'
-            }`}
-        >
-          <Timer size={16} /> Gym Visits
-        </button>
-        <button
-          onClick={() => setActiveTab('CLASS')}
-          className={`px-6 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'CLASS'
+              }`}
+          >
+            <Timer size={16} /> Gym Visits
+          </button>
+          <button
+            onClick={() => setActiveTab('CLASS')}
+            className={`px-6 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'CLASS'
               ? 'bg-blue-600 text-white shadow-md'
               : 'text-gray-500 hover:bg-gray-50'
-            }`}
-        >
-          <Activity size={16} /> Class History
-        </button>
+              }`}
+          >
+            <Activity size={16} /> Class History
+          </button>
+        </div>
+
+        <div className="flex gap-2 w-full md:w-auto">
+          <button onClick={downloadCSV} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 font-bold text-sm rounded-lg hover:bg-green-100 transition-colors">
+            <Download size={16} /> Export CSV
+          </button>
+          <button onClick={downloadPDF} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 font-bold text-sm rounded-lg hover:bg-blue-100 transition-colors">
+            <Download size={16} /> Export PDF
+          </button>
+        </div>
       </div>
 
       {/* Timeline List */}

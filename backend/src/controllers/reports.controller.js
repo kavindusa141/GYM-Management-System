@@ -5,6 +5,8 @@ const Attendance = require("../models/Attendance");
 const MembershipPlan = require("../models/MembershipPlan");
 const UserSubscription = require("../models/UserSubscription");
 const User = require("../models/User");
+const ClassBooking = require("../models/ClassBooking");
+const GymClass = require("../models/GymClass");
 
 exports.getReportsData = async (req, res) => {
   try {
@@ -224,5 +226,93 @@ exports.getReportsData = async (req, res) => {
   } catch (err) {
     console.error("Reports Error:", err);
     res.status(500).json({ error: "Failed to generate reports" });
+  }
+};
+
+exports.getMemberReportData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
+    const end = endDate ? new Date(endDate) : new Date();
+
+    const endOfDay = new Date(end);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Verify member exists
+    const member = await User.findOne({
+      where: { user_id: id, role: 'MEMBER' },
+      attributes: ['user_id', 'name', 'email', 'phone']
+    });
+
+    if (!member) {
+      return res.status(404).json({ error: "Member not found" });
+    }
+
+    // 1. Attendance History
+    const attendanceLogs = await Attendance.findAll({
+      where: {
+        member_id: id,
+        attendance_date: { [Op.between]: [start, end] }
+      },
+      order: [['attendance_date', 'DESC'], ['check_in', 'DESC']]
+    });
+
+    // 2. Payment History
+    const paymentLogs = await Payment.findAll({
+      where: {
+        user_id: id,
+        transaction_date: { [Op.between]: [start, endOfDay] }
+      },
+      include: [{
+        model: MembershipPlan,
+        attributes: ['name']
+      }],
+      order: [['transaction_date', 'DESC']]
+    });
+
+    const classLogs = await ClassBooking.findAll({
+      where: {
+        user_id: id,
+        booking_date: { [Op.between]: [start, endOfDay] }
+      },
+      include: [{
+        model: GymClass,
+        attributes: ['title', 'start_time', 'end_time']
+      }],
+      order: [['booking_date', 'DESC']]
+    });
+
+    res.json({
+      member,
+      attendance: attendanceLogs.map(log => ({
+        id: log.attendance_id,
+        date: log.attendance_date,
+        check_in: log.check_in,
+        check_out: log.check_out,
+        status: log.status
+      })),
+      payments: paymentLogs.map(log => ({
+        id: log.payment_id,
+        date: log.transaction_date,
+        amount: parseFloat(log.amount),
+        method: log.payment_method,
+        status: log.status,
+        plan_name: log.MembershipPlan ? log.MembershipPlan.name : 'Unknown'
+      })),
+      classes: classLogs.map(log => ({
+        id: log.booking_id,
+        date: log.booking_date,
+        class_name: log.GymClass ? log.GymClass.title : 'Unknown',
+        start_time: log.GymClass ? log.GymClass.start_time : null,
+        end_time: log.GymClass ? log.GymClass.end_time : null,
+        status: log.status
+      }))
+    });
+
+  } catch (err) {
+    console.error("Member Report Error:", err);
+    res.status(500).json({ error: "Failed to fetch member report data" });
   }
 };

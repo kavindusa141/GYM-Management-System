@@ -26,8 +26,7 @@ const {
   getMemberProfileById // Added
 
 } = require("../controllers/admin.controller");
-
-const { getReportsData } = require("../controllers/reports.controller");
+const { getReportsData, getMemberReportData } = require("../controllers/reports.controller");
 
 // --- DASHBOARD ROUTES ---
 router.get("/dashboard", verifyToken, allowRoles("ADMIN"), getDashboardStats);
@@ -68,8 +67,6 @@ router.delete("/users/:id", verifyToken, allowRoles("ADMIN"), deleteEmployee);
 
 // --- REPORTS ---
 router.get("/reports", verifyToken, allowRoles("ADMIN", "STAFF"), getReportsData);
-
-
-
+router.get("/reports/member/:id", verifyToken, allowRoles("ADMIN", "STAFF"), getMemberReportData);
 
 module.exports = router;

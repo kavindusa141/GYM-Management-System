@@ -48,7 +48,7 @@ export default function StaffLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar pb-4">
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar pb-4 mt-2">
 
           <Link to="/staff/dashboard" className={getLinkClass('/staff/dashboard')}>
             <LayoutDashboard size={18} />

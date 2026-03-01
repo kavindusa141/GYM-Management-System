@@ -2,16 +2,22 @@ import { useState } from 'react';
 import api from '../../services/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Lock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Lock, CheckCircle, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { validatePasswordStrength } from '../../utils/validation';
 
 export default function ResetPassword() {
   const { token } = useParams();
   const navigate = useNavigate();
-  
+
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
+  const [showPasswords, setShowPasswords] = useState({
+    new: false,
+    confirm: false
+  });
+
   // Validation State
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -19,10 +25,8 @@ export default function ResetPassword() {
   // Logic matches Registration Page (Strong Policy)
   const validate = (name, value) => {
     if (name === 'password') {
-      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\d\W]).{8,}$/;
-      if (!regex.test(value)) {
-        return "Must have 8+ chars, 1 Uppercase, 1 Lowercase & 1 Number/Symbol";
-      }
+      const error = validatePasswordStrength(value);
+      if (error) return error;
     }
     if (name === 'confirm') {
       if (value !== password) return "Passwords do not match";
@@ -37,7 +41,7 @@ export default function ResetPassword() {
     }
     // Live update confirm error if password changes
     if (name === 'password' && touched.confirm) {
-        setErrors(prev => ({...prev, confirm: value !== confirm ? "Passwords do not match" : "" }));
+      setErrors(prev => ({ ...prev, confirm: value !== confirm ? "Passwords do not match" : "" }));
     }
   };
 
@@ -48,7 +52,7 @@ export default function ResetPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const newErrors = {
       password: validate('password', password),
       confirm: validate('confirm', confirm)
@@ -81,41 +85,55 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
       <div className="w-full max-w-md p-8 glass-card border border-gray-700/50 rounded-2xl shadow-2xl bg-gray-900/60 backdrop-blur-xl">
         <h2 className="text-2xl font-bold text-white text-center mb-6">Set New Password</h2>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          
+
           <div className="group">
             <label className="text-xs font-bold text-gray-500 tracking-wider block mb-1">NEW PASSWORD</label>
             <div className="relative">
               <Lock className={`absolute left-3 top-3.5 h-5 w-5 ${errors.password ? 'text-red-500' : 'text-gray-500'}`} />
-              <input 
-                type="password" 
+              <input
+                type={showPasswords.new ? "text" : "password"}
                 className={getInputClass('password')}
                 value={password}
                 onChange={(e) => handleChange(setPassword, 'password', e.target.value)}
                 onBlur={() => handleBlur('password', password)}
               />
+              <button
+                type="button"
+                onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                className="absolute right-3 top-3.5 text-gray-400 hover:text-blue-500 transition-colors"
+              >
+                {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
-            {errors.password && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10}/> {errors.password}</p>}
+            {errors.password && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.password}</p>}
           </div>
 
           <div className="group">
             <label className="text-xs font-bold text-gray-500 tracking-wider block mb-1">CONFIRM PASSWORD</label>
             <div className="relative">
               <CheckCircle className={`absolute left-3 top-3.5 h-5 w-5 ${errors.confirm ? 'text-red-500' : 'text-gray-500'}`} />
-              <input 
-                type="password" 
+              <input
+                type={showPasswords.confirm ? "text" : "password"}
                 className={getInputClass('confirm')}
                 value={confirm}
                 onChange={(e) => handleChange(setConfirm, 'confirm', e.target.value)}
                 onBlur={() => handleBlur('confirm', confirm)}
               />
+              <button
+                type="button"
+                onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                className="absolute right-3 top-3.5 text-gray-400 hover:text-blue-500 transition-colors"
+              >
+                {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
-            {errors.confirm && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10}/> {errors.confirm}</p>}
+            {errors.confirm && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.confirm}</p>}
           </div>
 
           <button type="submit" disabled={loading} className="w-full py-3.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition shadow-lg flex justify-center items-center gap-2 transform active:scale-95">
-            {loading ? <RefreshCw className="animate-spin w-5 h-5"/> : 'Update Password'}
+            {loading ? <RefreshCw className="animate-spin w-5 h-5" /> : 'Update Password'}
           </button>
         </form>
       </div>

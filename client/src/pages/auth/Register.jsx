@@ -2,7 +2,7 @@ import { useState } from 'react';
 import api from '../../services/api';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Lock, Phone, Trophy, CheckCircle, Key, X, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, Phone, Trophy, CheckCircle, Key, X, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RegisterBG from '../../assets/images/RegisterBG.jpg';
 
@@ -16,6 +16,11 @@ export default function Register() {
   });
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otp, setOtp] = useState('');
+
+  const [showPasswords, setShowPasswords] = useState({
+    password: false,
+    confirm: false
+  });
 
   // Validation State
   const [errors, setErrors] = useState({});
@@ -265,12 +270,19 @@ export default function Register() {
                     <div className="relative">
                       <Lock className={`absolute left-3 top-3.5 h-5 w-5 ${errors.password ? 'text-red-500' : 'text-gray-500'}`} />
                       <input
-                        type="password" name="password"
+                        type={showPasswords.password ? "text" : "password"} name="password"
                         className={getInputClass('password')}
                         value={formData.password}
                         onChange={handleChange}
                         onBlur={handleBlur}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, password: !prev.password }))}
+                        className="absolute right-3 top-3.5 text-gray-400 hover:text-blue-500 transition-colors"
+                      >
+                        {showPasswords.password ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
                     </div>
                     {errors.password && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.password}</p>}
                   </motion.div>
@@ -281,12 +293,19 @@ export default function Register() {
                     <div className="relative">
                       <CheckCircle className={`absolute left-3 top-3.5 h-5 w-5 ${errors.confirmPassword ? 'text-red-500' : 'text-gray-500'}`} />
                       <input
-                        type="password" name="confirmPassword"
+                        type={showPasswords.confirm ? "text" : "password"} name="confirmPassword"
                         className={getInputClass('confirmPassword')}
                         value={confirmPassword}
                         onChange={handleConfirmChange}
                         onBlur={handleBlur}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                        className="absolute right-3 top-3.5 text-gray-400 hover:text-blue-500 transition-colors"
+                      >
+                        {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
                     </div>
                     {errors.confirmPassword && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} /> {errors.confirmPassword}</p>}
                   </motion.div>
