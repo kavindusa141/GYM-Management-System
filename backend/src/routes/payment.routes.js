@@ -35,7 +35,7 @@ router.post(
   "/pay",
   verifyToken,
   allowRoles("MEMBER"),
-  upload.single("slip_image"),
+  upload.any(),
   createPayment
 );
 
@@ -53,7 +53,7 @@ router.post(
   "/admin-pay",
   verifyToken,
   allowRoles("ADMIN", "STAFF"),
-  upload.single("slip_image"),
+  upload.any(),
   createPayment
 );
 

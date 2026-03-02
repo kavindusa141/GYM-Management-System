@@ -56,11 +56,11 @@ export default function PointOfSale() {
   const fetchData = async () => {
     try {
       const [membersRes, plansRes, paymentsRes] = await Promise.all([
-        api.get('/admin/members'),
+        api.get('/admin/members', { params: { limit: 5000 } }),
         api.get('/memberships'),
         api.get('/payments')
       ]);
-      setMembers(membersRes.data);
+      setMembers(membersRes.data.members || membersRes.data || []);
       setPlans(plansRes.data);
       setPayments(paymentsRes.data);
     } catch (error) {

@@ -3,48 +3,113 @@ const MemberProfile = require("../models/MemberProfile");
 const bcrypt = require("bcrypt");
 const { Op } = require("sequelize");
 
-// 1. Get All Members
+// 1. Get All Members (PAGINATED & OPTIMIZED)
 exports.getAllMembers = async (req, res) => {
   try {
     const UserSubscription = require("../models/UserSubscription");
     const MembershipPlan = require("../models/MembershipPlan");
 
-    const members = await User.findAll({
-      where: {
-        role: 'MEMBER',
-        [Op.or]: [
-          { is_deleted: false },
-          { is_deleted: null }
-        ]
-      },
-      // We only fetch 'status' (Database column)
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const search = req.query.search || '';
+    const filter = req.query.filter || 'ALL';
+
+    const whereClause = {
+      role: 'MEMBER',
+      is_deleted: { [Op.in]: [false, null] }
+    };
+
+    if (search) {
+      whereClause[Op.and] = [
+        {
+          [Op.or]: [
+            { name: { [Op.like]: `%${search}%` } },
+            { email: { [Op.like]: `%${search}%` } },
+            { member_code: { [Op.like]: `%${search}%` } },
+            { phone: { [Op.like]: `%${search}%` } }
+          ]
+        }
+      ];
+    }
+
+    if (filter === 'PENDING_VERIFICATION') {
+      whereClause.status = false;
+    }
+
+    const today = new Date();
+
+    // Subqueries for Subscription Filters
+    const activeSubs = await UserSubscription.findAll({
+      where: { status: 'ACTIVE', end_date: { [Op.gte]: today } },
+      attributes: ['user_id'],
+      raw: true
+    });
+    const activeUserIds = activeSubs.map(s => s.user_id);
+
+    const anySubs = await UserSubscription.findAll({
+      attributes: ['user_id'],
+      group: ['user_id'],
+      raw: true
+    });
+    const anyUserIds = anySubs.map(s => s.user_id);
+
+    // Apply Filter to WhereClause
+    if (filter === 'ACTIVE_SUB') {
+      whereClause.user_id = { [Op.in]: activeUserIds.length > 0 ? activeUserIds : [0] };
+    } else if (filter === 'NO_PLAN') {
+      whereClause.user_id = { [Op.notIn]: anyUserIds.length > 0 ? anyUserIds : [0] };
+    } else if (filter === 'EXPIRED_SUB') {
+      whereClause.user_id = {
+        [Op.in]: anyUserIds.length > 0 ? anyUserIds : [0],
+        [Op.notIn]: activeUserIds.length > 0 ? activeUserIds : [0]
+      };
+    }
+
+    // Generate Summary Counts for UI Tabs effortlessly
+    const summary = {};
+    if (page === 1 && !search) {
+      const baseWhere = { role: 'MEMBER', is_deleted: { [Op.in]: [false, null] } };
+      summary.ALL = await User.count({ where: baseWhere });
+      summary.PENDING_VERIFICATION = await User.count({ where: { ...baseWhere, status: false } });
+      summary.ACTIVE_SUB = await User.count({ where: { ...baseWhere, user_id: { [Op.in]: activeUserIds.length > 0 ? activeUserIds : [0] } } });
+      summary.NO_PLAN = await User.count({ where: { ...baseWhere, user_id: { [Op.notIn]: anyUserIds.length > 0 ? anyUserIds : [0] } } });
+      summary.EXPIRED_SUB = summary.ALL - summary.NO_PLAN - summary.ACTIVE_SUB;
+    }
+
+    // MAIN PAGINATED QUERY
+    const { rows: members, count: totalRecords } = await User.findAndCountAll({
+      where: whereClause,
       attributes: ['user_id', 'member_code', 'name', 'email', 'phone', 'status', 'created_at'],
       include: [
-        {
-          model: MemberProfile,
-          attributes: ['profile_id']
-        },
+        { model: MemberProfile, attributes: ['profile_id'] },
         {
           model: UserSubscription,
           attributes: ['status', 'end_date', 'plan_id'],
-          include: [{ model: MembershipPlan, attributes: ['name'] }],
-          order: [['end_date', 'DESC']],
-          limit: 1
+          include: [{ model: MembershipPlan, attributes: ['name'] }]
         }
       ],
-      order: [['user_id', 'DESC']]
+      order: [['user_id', 'DESC']],
+      limit: limit,
+      offset: offset,
+      distinct: true // Required so limit applies to Users, not joined rows
     });
 
     const processedMembers = members.map(member => {
-      const latestSub = member.UserSubscriptions && member.UserSubscriptions[0];
+      let latestSub = null;
+      if (member.UserSubscriptions && member.UserSubscriptions.length > 0) {
+        // Find latest dynamically to avoid 'limit 1' inside findAndCountAll include bug
+        const sortedSubs = [...member.UserSubscriptions].sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
+        latestSub = sortedSubs[0];
+      }
+
       let subStatus = 'NO_PLAN';
       let planName = 'N/A';
       let expiryDate = null;
 
       if (latestSub) {
-        const today = new Date();
         const endDate = new Date(latestSub.end_date);
-
         planName = latestSub.MembershipPlan?.name || 'Unknown Plan';
         expiryDate = latestSub.end_date;
 
@@ -60,13 +125,20 @@ exports.getAllMembers = async (req, res) => {
         subscription_status: subStatus,
         current_plan: planName,
         expiry_date: expiryDate,
-        // LOGIC: If status is 1 (true), we tell Frontend "is_verified: true"
-        // This keeps the UI working without changing the database.
         is_verified: member.status === true
       };
     });
 
-    res.json(processedMembers);
+    res.json({
+      members: processedMembers,
+      pagination: {
+        totalRecords,
+        totalPages: Math.ceil(totalRecords / limit),
+        currentPage: page,
+        limit
+      },
+      summary // Only sent heavily populated on page 1 with no search
+    });
   } catch (err) {
     console.error("Get Members Error:", err);
     res.status(500).json({ message: err.message });

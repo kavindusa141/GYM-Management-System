@@ -54,9 +54,20 @@ app.use(cors({
 app.use(express.json());
 
 // ===============================
+// IMPORT MIDDLEWARES
+// ===============================
+const { globalLimiter, authLimiter } = require("./middleware/rateLimit.middleware");
+const errorHandler = require("./middleware/error.middleware");
+
+// ===============================
 // ROUTE REGISTRATION
 // ===============================
-app.use("/api/auth", authRoutes);
+// 1. Apply Global Rate Limiting to all requests
+app.use("/api", globalLimiter);
+
+// 2. Apply Strict Rate Limiting exclusively to authentication attempts
+app.use("/api/auth", authLimiter, authRoutes);
+
 app.use("/api/admin", adminRoutes);
 app.use("/api/member", memberRoutes);
 app.use("/api/classes", classRoutes);
@@ -81,7 +92,11 @@ app.use("/api/dashboard", dashboardRoutes);
 // ROOT TEST ROUTE
 // ===============================
 app.get("/", (req, res) => {
-  res.send("Gym Management API running");
+  res.send("Gym Management API running securely");
 });
+
+// ===============================
+// This must be the absolute LAST middleware applied to catch everything
+app.use(errorHandler);
 
 module.exports = app;

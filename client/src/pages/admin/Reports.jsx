@@ -55,8 +55,9 @@ export default function Reports() {
 
   const fetchMembers = async () => {
     try {
-      const res = await api.get('/admin/members');
-      setMembers(res.data);
+      // Pass a high limit so the datalist dropdown has all members searchable
+      const res = await api.get('/admin/members', { params: { limit: 5000 } });
+      setMembers(res.data.members || res.data || []);
     } catch (error) {
       console.error(error);
     }

@@ -205,7 +205,7 @@ export default function ManageClasses() {
 
           {/* Create Button (Admin/Staff Only) */}
           {(user.role === 'ADMIN' || user.role === 'STAFF') && (
-            <button onClick={() => navigate('/admin/classes/new')}
+            <button onClick={() => navigate(`/${user.role.toLowerCase()}/classes/new`)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/30 active:scale-95 transition-all w-fit self-end md:self-auto">
               <Plus size={20} /> Schedule Class
             </button>
@@ -332,7 +332,7 @@ export default function ManageClasses() {
                   {(user.role === 'ADMIN' || user.role === 'STAFF') && (
                     <>
                       {cls.status === 'SCHEDULED' && (
-                        <button onClick={() => navigate(`/admin/classes/${cls.class_id}/edit`)} className="col-span-1 p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 flex justify-center" title="Edit"><Edit2 size={18} /></button>
+                        <button onClick={() => navigate(`/${user.role.toLowerCase()}/classes/${cls.class_id}/edit`)} className="col-span-1 p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 flex justify-center" title="Edit"><Edit2 size={18} /></button>
                       )}
                       <button onClick={() => handleDelete(cls.class_id)} className="col-span-1 p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 flex justify-center" title="Delete"><Trash2 size={18} /></button>
                     </>

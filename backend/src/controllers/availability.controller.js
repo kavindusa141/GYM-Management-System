@@ -9,7 +9,7 @@ exports.getAvailability = async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const availability = await TrainerAvailability.findAll({
       where: {
-        trainer_id: req.user.id,
+        trainer_id: req.user.user_id,
         date: { [Op.gte]: today }
       },
       order: [['date', 'ASC']]
@@ -24,7 +24,7 @@ exports.getAvailability = async (req, res) => {
 exports.updateAvailability = async (req, res) => {
   try {
     const { schedule } = req.body; // Expects array: [{ date: '2024-05-20', slots: [6,7] }, ...]
-    const trainer_id = req.user.id;
+    const trainer_id = req.user.user_id;
 
     // We loop through the incoming schedule and upsert records
     for (const item of schedule) {

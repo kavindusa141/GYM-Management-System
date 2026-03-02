@@ -177,6 +177,8 @@ export default function App() {
         <Route path="register" element={<RegisterMember />} />
         <Route path="pos" element={<PointOfSale />} />
         <Route path="classes" element={<ManageClasses />} />
+        <Route path="classes/new" element={<ScheduleClass />} />
+        <Route path="classes/:id/edit" element={<ScheduleClass />} />
         <Route path="reports" element={<StaffReports />} />
         <Route path="settings" element={<StaffSettings />} />
       </Route>

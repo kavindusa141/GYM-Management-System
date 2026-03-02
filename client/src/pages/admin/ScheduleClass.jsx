@@ -6,9 +6,11 @@ import {
     Calendar, Clock, Users, ArrowLeft, Loader2, Save
 } from 'lucide-react';
 import TrainerAvailabilityCalendar from '../../components/TrainerAvailabilityCalendar';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ScheduleClass() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const { id } = useParams(); // If present, we are editing
     const isEditing = Boolean(id);
 
@@ -76,7 +78,7 @@ export default function ScheduleClass() {
                     if (cls.trainer_id) setScheduleTrainerId(cls.trainer_id);
                 } else {
                     toast.error("Class not found");
-                    navigate('/admin/classes');
+                    navigate(`/${user?.role?.toLowerCase() || 'admin'}/classes`);
                 }
             } else {
                 // Set default trainer for schedule view
@@ -107,7 +109,7 @@ export default function ScheduleClass() {
                 await api.post('/classes', formData);
                 toast.success("Class scheduled successfully");
             }
-            navigate('/admin/classes');
+            navigate(`/${user?.role?.toLowerCase() || 'admin'}/classes`);
         } catch (error) {
             if (error.response?.status === 409) {
                 toast.error(error.response?.data?.message || "Trainer conflict");
@@ -134,7 +136,7 @@ export default function ScheduleClass() {
         <div className="max-w-5xl mx-auto pb-20 animate-fade-in text-left">
             {/* Back Button */}
             <button
-                onClick={() => navigate('/admin/classes')}
+                onClick={() => navigate(`/${user?.role?.toLowerCase() || 'admin'}/classes`)}
                 className="mb-6 flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors"
             >
                 <ArrowLeft size={20} /> Back to Classes

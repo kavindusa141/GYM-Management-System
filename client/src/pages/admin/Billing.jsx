@@ -42,11 +42,15 @@ export default function Billing() {
   const fetchData = async () => {
     try {
       const [membersRes, plansRes, paymentsRes] = await Promise.all([
-        api.get('/admin/members'),
+        // Billing needs the full list of members for the dropdown search
+        // We pass a high limit to bypass the default 10-item pagination
+        api.get('/admin/members', { params: { limit: 5000 } }),
         api.get('/memberships'),
         api.get('/payments')
       ]);
-      setMembers(membersRes.data);
+
+      // Handle the new Paginated Response format (.members array)
+      setMembers(membersRes.data.members || membersRes.data || []);
       setPlans(plansRes.data);
       setPayments(paymentsRes.data);
     } catch (error) {
@@ -327,7 +331,7 @@ export default function Billing() {
 
                   {/* Revenue Badge */}
                   <span className="ml-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-                    Revenue: Rs. {monthlyTotal.toLocaleString()}
+                    {historySearch ? 'Filtered Revenue' : selectedMonth ? 'Monthly Revenue' : 'Lifetime Revenue'}: Rs. {monthlyTotal.toLocaleString()}
                   </span>
                 </div>
 
@@ -368,8 +372,8 @@ export default function Billing() {
                       key={type}
                       onClick={() => setHistoryFilter(type)}
                       className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${historyFilter === type
-                          ? 'bg-gray-900 text-white shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        ? 'bg-gray-900 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                         }`}
                     >
                       {type}

@@ -88,7 +88,7 @@ export default function AdminDashboard() {
           title="Total Revenue"
           value={formatCurrency(stats.totalRevenue)}
           icon={<Banknote className="w-5 h-5" />}
-          trend="vs last month"
+          trend="Lifetime total"
           color="green"
         />
         <StatCard
@@ -102,7 +102,7 @@ export default function AdminDashboard() {
           title="Classes Scheduled"
           value={stats.totalClasses}
           icon={<Calendar className="w-5 h-5" />}
-          trend="This week"
+          trend="Currently scheduled"
           color="orange"
         />
       </div>

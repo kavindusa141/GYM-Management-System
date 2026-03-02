@@ -45,7 +45,7 @@ exports.createPlan = async (req, res) => {
       const assignment = await MemberAssignment.findOne({
         where: {
           member_id,
-          trainer_id: req.user.id,
+          trainer_id: req.user.user_id,
           status: 'ACTIVE'
         }
       });
@@ -58,7 +58,7 @@ exports.createPlan = async (req, res) => {
 
     const newPlan = await WorkoutPlan.create({
       member_id: member_id || null,
-      trainer_id: req.user.id,
+      trainer_id: req.user.user_id,
       name,
       description,
       is_common: isCommon,
@@ -92,7 +92,7 @@ exports.getTrainerPlans = async (req, res) => {
     const plans = await WorkoutPlan.findAll({
       where: {
         [Op.or]: [
-          { trainer_id: req.user.id }, // My Created Plans
+          { trainer_id: req.user.user_id }, // My Created Plans
           { is_common: true }          // All Common Plans
         ]
       },
@@ -134,7 +134,7 @@ exports.getTrainerPlans = async (req, res) => {
 exports.getMembersForTrainer = async (req, res) => {
   try {
     const assignments = await MemberAssignment.findAll({
-      where: { trainer_id: req.user.id, status: 'ACTIVE' },
+      where: { trainer_id: req.user.user_id, status: 'ACTIVE' },
       include: [{
         model: User,
         as: 'Member',
@@ -178,7 +178,7 @@ exports.getMyPlans = async (req, res) => {
       where: {
         status: 'ACTIVE',
         [Op.or]: [
-          { member_id: req.user.id }, // My Personal Plans
+          { member_id: req.user.user_id }, // My Personal Plans
           { is_common: true }         // Common Plans for everyone
         ]
       },
@@ -199,7 +199,7 @@ exports.logWorkout = async (req, res) => {
   try {
     const { plan_id, duration_mins, notes, mood } = req.body;
     const log = await WorkoutLog.create({
-      member_id: req.user.id,
+      member_id: req.user.user_id,
       plan_id,
       duration_mins: duration_mins || 0,
       notes,
@@ -266,7 +266,7 @@ exports.updatePlan = async (req, res) => {
         start_date,
         end_date,
         is_common: isCommon,
-        updated_by: req.user.id // Track who updated it
+        updated_by: req.user.user_id // Track who updated it
       },
       { where: { plan_id: id } }
     );

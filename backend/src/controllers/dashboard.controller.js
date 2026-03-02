@@ -2,11 +2,11 @@ const User = require("../models/User");
 const Payment = require("../models/Payment");
 const GymClass = require("../models/GymClass");
 const Attendance = require("../models/Attendance");
-const UserSubscription = require("../models/UserSubscription"); 
+const UserSubscription = require("../models/UserSubscription");
 const MembershipPlan = require("../models/MembershipPlan");
 const ClassBooking = require("../models/ClassBooking");
-const WorkoutPlan = require("../models/WorkoutPlan"); 
-const WorkoutLog = require("../models/WorkoutLog"); 
+const WorkoutPlan = require("../models/WorkoutPlan");
+const WorkoutLog = require("../models/WorkoutLog");
 const { Op } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -16,8 +16,8 @@ exports.getDashboardStats = async (req, res) => {
     // 1. Total Members (Registered Accounts) - Exclude deleted members
     const totalMembers = await User.count({ where: { role: "MEMBER", is_deleted: false } });
 
-    // 2. Total Trainers - Exclude deleted trainers
-    const totalTrainers = await User.count({ where: { role: "TRAINER", is_deleted: false } });
+    // 2. Total Trainers - Exclude deleted trainers, ensure they are active
+    const totalTrainers = await User.count({ where: { role: "TRAINER", is_deleted: false, status: true } });
 
     // 3. Total Revenue (All verified/completed payments)
     const totalRevenue = await Payment.sum("amount", {
@@ -26,8 +26,8 @@ exports.getDashboardStats = async (req, res) => {
       }
     }) || 0;
 
-    // 4. Total Classes
-    const totalClasses = await GymClass.count();
+    // 4. Total Scheduled Classes
+    const totalClasses = await GymClass.count({ where: { status: 'SCHEDULED' } });
 
     res.json({
       totalMembers,
@@ -72,7 +72,7 @@ exports.getAnalytics = async (req, res) => {
     // Helper: Group Data by Month
     const processMonthly = (data, dateKey, valueKey = null) => {
       const grouped = {};
-      
+
       // Initialize last 6 months with 0 to prevent gaps in chart
       for (let i = 5; i >= 0; i--) {
         const d = new Date();
@@ -84,7 +84,7 @@ exports.getAnalytics = async (req, res) => {
       data.forEach(item => {
         const dateVal = item[dateKey] || item.dataValues[dateKey];
         if (!dateVal) return;
-        
+
         const month = new Date(dateVal).toLocaleString('default', { month: 'short' });
         if (grouped[month] !== undefined) {
           grouped[month] += valueKey ? parseFloat(item[valueKey]) : 1;
@@ -123,7 +123,7 @@ exports.getMemberStats = async (req, res) => {
     // --- NEW: Calculate Average Duration ---
     // We only average sessions where 'duration' is not null (meaning they checked out)
     const durationStats = await Attendance.findAll({
-      where: { 
+      where: {
         member_id: memberId,
         duration: { [Op.ne]: null } // Only completed sessions
       },
@@ -133,8 +133,8 @@ exports.getMemberStats = async (req, res) => {
       raw: true
     });
 
-    const avgMinutes = durationStats[0].avgDuration 
-      ? Math.round(parseFloat(durationStats[0].avgDuration)) 
+    const avgMinutes = durationStats[0].avgDuration
+      ? Math.round(parseFloat(durationStats[0].avgDuration))
       : 0;
 
     // 2️⃣ Today's date for comparison
@@ -207,8 +207,8 @@ exports.getTrainerDashboardStats = async (req, res) => {
   try {
     const trainerId = req.user.id;
     const today = new Date();
-    const startOfDay = new Date(today.setHours(0,0,0,0));
-    const endOfDay = new Date(today.setHours(23,59,59,999));
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
     // 1. Count Active Plans (Clients)
     const activePlans = await WorkoutPlan.count({
@@ -217,7 +217,7 @@ exports.getTrainerDashboardStats = async (req, res) => {
 
     // 2. Count Today's Classes
     const todayClassesCount = await GymClass.count({
-      where: { 
+      where: {
         trainer_id: trainerId,
         status: 'SCHEDULED'
         // Note: In a real DB, you'd filter by date here if your GymClass has a specific date. 
@@ -229,9 +229,9 @@ exports.getTrainerDashboardStats = async (req, res) => {
     // 3. Get Today's Schedule (Actual Data)
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const todayName = days[new Date().getDay()];
-    
+
     const todaysSchedule = await GymClass.findAll({
-      where: { 
+      where: {
         trainer_id: trainerId,
         day_of_week: todayName
       },
@@ -281,14 +281,14 @@ exports.getStaffDashboardStats = async (req, res) => {
     endOfDay.setHours(23, 59, 59, 999);
 
     // 3. Total Active Members
-    const totalMembers = await User.count({ 
-      where: { role: 'MEMBER', is_deleted: false } 
+    const totalMembers = await User.count({
+      where: { role: 'MEMBER', is_deleted: false }
     });
 
     // 4. Today's Check-ins 
     // FIXED: Use 'attendance_date' (DATEONLY) matches string 'YYYY-MM-DD'
     const todayAttendance = await Attendance.count({
-      where: { 
+      where: {
         attendance_date: todayStr
       }
     });
@@ -296,7 +296,7 @@ exports.getStaffDashboardStats = async (req, res) => {
     // 5. Today's Revenue (POS + Online)
     // Payments use 'transaction_date' (DATETIME), so [Op.between] works here
     const todayRevenue = await Payment.sum('amount', {
-      where: { 
+      where: {
         status: { [Op.or]: ['VERIFIED', 'COMPLETED'] },
         transaction_date: { [Op.between]: [startOfDay, endOfDay] }
       }
@@ -310,9 +310,9 @@ exports.getStaffDashboardStats = async (req, res) => {
         ['attendance_date', 'DESC'],
         ['check_in', 'DESC']
       ],
-      include: [{ 
-        model: User, 
-        attributes: ['name', 'member_code', 'email'] 
+      include: [{
+        model: User,
+        attributes: ['name', 'member_code', 'email']
       }]
     });
 

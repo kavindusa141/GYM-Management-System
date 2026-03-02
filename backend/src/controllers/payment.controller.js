@@ -77,6 +77,7 @@ exports.createPayment = async (req, res) => {
 
     // ❌ Basic validation
     if (!user_id || !plan_id || !amount) {
+      console.log("PAYMENT 400 ERROR: Missing fields", { user_id, plan_id, amount });
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -93,6 +94,7 @@ exports.createPayment = async (req, res) => {
 
     // If at least one pending payment exists → block new upload
     if (pendingPaymentCount >= 1) {
+      console.log("PAYMENT 400 ERROR: Pending exists for user", user_id);
       return res.status(400).json({
         message: "You already have a pending payment awaiting admin approval"
       });

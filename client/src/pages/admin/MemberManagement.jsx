@@ -12,21 +12,46 @@ export default function MemberManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('ALL');
-  // Removed showAddModal state
+
+  // NEW: Pagination State
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ totalPages: 1, totalRecords: 0 });
+  const [summary, setSummary] = useState({ ALL: 0, ACTIVE_SUB: 0, EXPIRED_SUB: 0, NO_PLAN: 0, PENDING_VERIFICATION: 0 });
 
   useEffect(() => {
-    fetchMembers();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchMembers();
+    }, 500); // 500ms debounce to prevent API spam while typing
+    return () => clearTimeout(timer);
+  }, [searchTerm, filterType, page]);
 
   const fetchMembers = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/admin/members');
-      setMembers(res.data);
+      const res = await api.get('/admin/members', {
+        params: { page, limit: 10, search: searchTerm, filter: filterType }
+      });
+      setMembers(res.data.members);
+      setPagination(res.data.pagination);
+
+      if (res.data.summary && Object.keys(res.data.summary).length > 0) {
+        setSummary(res.data.summary);
+      }
     } catch (error) {
       toast.error("Failed to load members");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setPage(1); // Reset to page 1 on new search
+  };
+
+  const handleFilterChange = (type) => {
+    setFilterType(type);
+    setPage(1); // Reset to page 1 on new filter
   };
 
   const handleDelete = async (id) => {
@@ -39,23 +64,6 @@ export default function MemberManagement() {
       toast.error("Failed to delete member");
     }
   };
-
-  // --- FILTER LOGIC ---
-  const filteredMembers = members.filter(member => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch =
-      member.name.toLowerCase().includes(searchLower) ||
-      member.email.toLowerCase().includes(searchLower) ||
-      (member.member_code && member.member_code.toLowerCase().includes(searchLower));
-
-    let matchesCategory = true;
-    if (filterType === 'ACTIVE_SUB') matchesCategory = member.subscription_status === 'ACTIVE';
-    else if (filterType === 'EXPIRED_SUB') matchesCategory = member.subscription_status === 'EXPIRED';
-    else if (filterType === 'PENDING_VERIFICATION') matchesCategory = member.is_verified === false;
-    else if (filterType === 'NO_PLAN') matchesCategory = member.subscription_status === 'NO_PLAN';
-
-    return matchesSearch && matchesCategory;
-  });
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 relative">
@@ -78,36 +86,36 @@ export default function MemberManagement() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <FilterTab
           label="All Members"
-          count={members.length}
+          count={summary.ALL || 0}
           active={filterType === 'ALL'}
-          onClick={() => setFilterType('ALL')}
+          onClick={() => handleFilterChange('ALL')}
         />
         <FilterTab
           label="Active Plan"
-          count={members.filter(m => m.subscription_status === 'ACTIVE').length}
+          count={summary.ACTIVE_SUB || 0}
           active={filterType === 'ACTIVE_SUB'}
-          onClick={() => setFilterType('ACTIVE_SUB')}
+          onClick={() => handleFilterChange('ACTIVE_SUB')}
           color="green"
         />
         <FilterTab
           label="Expired Plan"
-          count={members.filter(m => m.subscription_status === 'EXPIRED').length}
+          count={summary.EXPIRED_SUB || 0}
           active={filterType === 'EXPIRED_SUB'}
-          onClick={() => setFilterType('EXPIRED_SUB')}
+          onClick={() => handleFilterChange('EXPIRED_SUB')}
           color="red"
         />
         <FilterTab
           label="No Plan"
-          count={members.filter(m => m.subscription_status === 'NO_PLAN').length}
+          count={summary.NO_PLAN || 0}
           active={filterType === 'NO_PLAN'}
-          onClick={() => setFilterType('NO_PLAN')}
+          onClick={() => handleFilterChange('NO_PLAN')}
           color="gray"
         />
         <FilterTab
           label="Unverified"
-          count={members.filter(m => !m.is_verified).length}
+          count={summary.PENDING_VERIFICATION || 0}
           active={filterType === 'PENDING_VERIFICATION'}
-          onClick={() => setFilterType('PENDING_VERIFICATION')}
+          onClick={() => handleFilterChange('PENDING_VERIFICATION')}
           color="orange"
         />
       </div>
@@ -120,7 +128,7 @@ export default function MemberManagement() {
           placeholder="Search by Name, Email or Member ID..."
           className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearchChange}
         />
       </div>
 
@@ -139,11 +147,11 @@ export default function MemberManagement() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan="5" className="p-10 text-center text-gray-400">Loading...</td></tr>
-              ) : filteredMembers.length === 0 ? (
-                <tr><td colSpan="5" className="p-10 text-center text-gray-400">No members found.</td></tr>
+                <tr><td colSpan="5" className="p-10 text-center text-gray-400">Loading Members...</td></tr>
+              ) : members.length === 0 ? (
+                <tr><td colSpan="5" className="p-10 text-center text-gray-400">No members found matching your criteria.</td></tr>
               ) : (
-                filteredMembers.map(member => (
+                members.map(member => (
                   <tr key={member.user_id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-5">
                       <div className="flex items-center gap-3">
@@ -218,6 +226,36 @@ export default function MemberManagement() {
             </tbody>
           </table>
         </div>
+
+        {/* SERVER-SIDE PAGINATION CONTROLS */}
+        {!loading && pagination.totalPages > 1 && (
+          <div className="p-5 border-t border-gray-100 flex items-center justify-between text-sm bg-gray-50/50">
+            <span className="text-gray-500">
+              Showing <span className="font-bold text-gray-900">{members.length}</span> of <span className="font-bold text-gray-900">{pagination.totalRecords}</span> matching members
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-100 transition-colors font-medium text-gray-700 shadow-sm"
+              >
+                Previous
+              </button>
+
+              <div className="px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-lg border border-blue-100 shadow-sm">
+                Page {page} of {pagination.totalPages}
+              </div>
+
+              <button
+                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-100 transition-colors font-medium text-gray-700 shadow-sm"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
