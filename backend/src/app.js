@@ -40,6 +40,7 @@ const availabilityRoutes = require("./routes/availability.routes");
 const assignmentRoutes = require("./routes/assignment.routes");
 const progressRoutes = require("./routes/progress.routes");
 const galleryRoutes = require("./routes/gallery.routes");
+const promotionRoutes = require("./routes/promotion.routes");
 
 
 // ===============================
@@ -82,6 +83,7 @@ app.use("/api/availability", availabilityRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/gallery", galleryRoutes);
+app.use("/api/promotions", promotionRoutes);
 
 // Dashboard routes (shared but role-protected internally)
 app.use("/api/admin", dashboardRoutes);

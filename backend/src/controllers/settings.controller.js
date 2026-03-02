@@ -8,9 +8,9 @@ const { Op } = require("sequelize");
 exports.getAccountInfo = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: ['name', 'email', 'phone'] 
+      attributes: ['name', 'email', 'phone']
     });
-    
+
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json(user);
@@ -40,11 +40,11 @@ exports.updateAccountInfo = async (req, res) => {
     if (email && email.trim().length > 0) {
       // Check if email is being changed to one that already exists
       if (email !== user.email) {
-        const emailExists = await User.findOne({ 
-          where: { 
+        const emailExists = await User.findOne({
+          where: {
             email: email,
             user_id: { [Op.ne]: userId } // Exclude current user
-          } 
+          }
         });
         if (emailExists) {
           return res.status(400).json({ message: "Email is already in use by another account." });
@@ -66,13 +66,13 @@ exports.updateAccountInfo = async (req, res) => {
     // Reload user to get the absolute latest data from DB
     await user.reload();
 
-    res.json({ 
-      message: "Account details updated successfully", 
-      user: { 
-        name: user.name, 
-        email: user.email, 
-        phone: user.phone 
-      } 
+    res.json({
+      message: "Account details updated successfully",
+      user: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone
+      }
     });
 
   } catch (err) {
@@ -92,7 +92,7 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findByPk(userId);
-    
+
     // Verify old password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) return res.status(400).json({ message: "Current password is incorrect" });
@@ -111,7 +111,8 @@ exports.changePassword = async (req, res) => {
 
 exports.updateSystemSettings = async (req, res) => {
   try {
-    const { system_name, gym_location, contact_email, contact_phone } = req.body;
+    // Include registration_fee
+    const { system_name, gym_location, contact_email, contact_phone, registration_fee } = req.body;
 
     // Helper to update or create
     const upsert = async (key, val) => {
@@ -128,6 +129,7 @@ exports.updateSystemSettings = async (req, res) => {
     if (gym_location) await upsert('gym_location', gym_location);
     if (contact_email) await upsert('contact_email', contact_email);
     if (contact_phone) await upsert('contact_phone', contact_phone);
+    if (registration_fee !== undefined) await upsert('registration_fee', registration_fee.toString());
 
     res.json({ message: "System configuration updated" });
   } catch (err) {
@@ -141,12 +143,13 @@ exports.getSystemSettings = async (req, res) => {
     const settings = await SystemSetting.findAll();
     const config = {};
     settings.forEach(s => config[s.key_name] = s.value);
-    
+
     // Default Fallbacks
     if (!config.system_name) config.system_name = "Royal Fitness Kingdom";
     if (!config.gym_location) config.gym_location = "Colombo, Sri Lanka";
     if (!config.contact_email) config.contact_email = "royalfitnesskingdom12.com";
     if (!config.contact_phone) config.contact_phone = "+94 11 234 5678";
+    if (!config.registration_fee) config.registration_fee = "0.00";
 
     res.json(config);
   } catch (err) {

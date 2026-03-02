@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { motion, useScroll, useTransform, AnimatePresence, useInView, useMotionValue, animate } from 'framer-motion';
 import {
-  Dumbbell, Users, Calendar, ArrowRight, CheckCircle, Star, Package, ChevronDown, ChevronUp, Menu, X, Clock, Footprints, Activity, ShieldCheck, Zap
+  Dumbbell, Users, Calendar, ArrowRight, CheckCircle, Star, Package, ChevronDown, ChevronUp, Menu, X, Clock, Footprints, Activity, ShieldCheck, Zap, Tag
 } from 'lucide-react';
 
 import GYM_Background from '../assets/images/GYM_Background.jpg';
@@ -42,6 +42,9 @@ export default function LandingPage() {
   const [showAllPlans, setShowAllPlans] = useState(false);
   const [loadingPlans, setLoadingPlans] = useState(true);
 
+  // New Promo State
+  const [activePromo, setActivePromo] = useState(null);
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -70,6 +73,10 @@ export default function LandingPage() {
       .then(res => setGalleryImages(res.data))
       .catch(console.error)
       .finally(() => setLoadingGallery(false));
+
+    api.get('/promotions/active')
+      .then(res => setActivePromo(res.data))
+      .catch(() => { });
 
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
@@ -471,6 +478,39 @@ export default function LandingPage() {
           <p>© {new Date().getFullYear()} {config.system_name}. DOMINATE YOUR GOALS.</p>
         </div>
       </footer>
+
+      {/* --- FLOATING PROMO BANNER --- */}
+      <AnimatePresence>
+        {activePromo && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-0 left-0 w-full z-50 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 border-t border-white/10 text-white py-4 px-6 shadow-2xl flex flex-col sm:flex-row items-center justify-between"
+          >
+            <div className="flex items-center gap-4 mb-3 sm:mb-0">
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 shrink-0">
+                <Tag size={20} className="text-yellow-400" />
+              </span>
+              <div>
+                <p className="font-black tracking-widest uppercase text-sm sm:text-base drop-shadow-md">{activePromo.title}</p>
+                <p className="text-xs sm:text-sm font-medium opacity-90 mt-0.5 max-w-xl pr-4">
+                  {activePromo.description} • Save {activePromo.discountType === 'PERCENTAGE' ? `${activePromo.discountValue}%` : `Rs. ${activePromo.discountValue}`} on your registration fee until {new Date(activePromo.endDate).toLocaleDateString()}!
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 shrink-0">
+              <Link to="/register" className="px-6 py-2.5 bg-white text-black rounded-full font-black uppercase tracking-widest text-xs hover:scale-105 hover:shadow-xl transition-all">
+                Claim Offer
+              </Link>
+              <button onClick={() => setActivePromo(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors text-white/70 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

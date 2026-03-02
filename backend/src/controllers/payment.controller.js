@@ -68,7 +68,10 @@ const activateSubscription = async (user_id, plan_id) => {
  */
 exports.createPayment = async (req, res) => {
   try {
-    let { user_id, plan_id, amount, payment_method, reference_number } = req.body;
+    let {
+      user_id, plan_id, amount, payment_method, reference_number,
+      registration_fee = 0, discount_amount = 0, promo_id = null
+    } = req.body;
 
     // ✅ Use logged-in user ID if not explicitly provided
     if (!user_id && req.user) {
@@ -142,7 +145,10 @@ exports.createPayment = async (req, res) => {
       payment_method,
       status,
       slip_url,
-      reference_number
+      reference_number,
+      registration_fee,
+      discount_amount,
+      promo_id
     });
 
     // ===============================
@@ -281,8 +287,8 @@ exports.getAllPayments = async (req, res) => {
 
     const payments = await Payment.findAll({
       where,
-      // Added 'rejection_reason' to attributes
-      attributes: ['payment_id', 'user_id', 'plan_id', 'amount', 'payment_method', 'status', 'slip_url', 'reference_number', 'transaction_date', 'rejection_reason'],
+      // Added new fields to attributes
+      attributes: ['payment_id', 'user_id', 'plan_id', 'amount', 'payment_method', 'status', 'slip_url', 'reference_number', 'transaction_date', 'rejection_reason', 'registration_fee', 'discount_amount', 'promo_id'],
       include: [
         {
           model: User,
@@ -344,6 +350,8 @@ exports.getPaymentReceipt = async (req, res) => {
       date: payment.transaction_date,
       member: payment.User,
       plan: payment.MembershipPlan,
+      registration_fee: payment.registration_fee,
+      discount_amount: payment.discount_amount,
       amount: payment.amount,
       method: payment.payment_method,
       reference: payment.reference_number,
@@ -481,9 +489,23 @@ exports.downloadReceiptPDF = async (req, res) => {
               <span class="value">${payment.MembershipPlan.name}</span>
             </div>
             <div class="row">
+              <span class="label">Plan Price:</span>
+              <span class="value">Rs. ${parseFloat(payment.MembershipPlan.price).toLocaleString()}</span>
+            </div>
+            <div class="row">
               <span class="label">Duration:</span>
               <span class="value">${payment.MembershipPlan.duration_months} Month(s)</span>
             </div>
+            ${payment.registration_fee && payment.registration_fee > 0 ? `
+            <div class="row">
+              <span class="label">Registration Fee:</span>
+              <span class="value">Rs. ${parseFloat(payment.registration_fee).toLocaleString()}</span>
+            </div>` : ''}
+            ${payment.discount_amount && payment.discount_amount > 0 ? `
+            <div class="row">
+              <span class="label">Discount Applied:</span>
+              <span class="value">- Rs. ${parseFloat(payment.discount_amount).toLocaleString()}</span>
+            </div>` : ''}
           </div>
 
           <div class="section">

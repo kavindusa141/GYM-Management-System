@@ -3,7 +3,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import {
   CreditCard, CheckCircle, XCircle, Clock, FileText, Package, LayoutList, History,
-  Dumbbell, Footprints, Calendar, Upload, AlertCircle, RefreshCw, Download
+  Dumbbell, Footprints, Calendar, Upload, AlertCircle, RefreshCw, Download, Tag
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -41,6 +41,10 @@ export default function MemberPayment() {
   const [reuploadId, setReuploadId] = useState(null);
   const [reuploadFile, setReuploadFile] = useState(null);
 
+  // --- NEW: Config & Promo State ---
+  const [publicConfig, setPublicConfig] = useState(null);
+  const [activePromo, setActivePromo] = useState(null);
+
   useEffect(() => {
     fetchData();
     api.get('/member/member-stats')
@@ -50,12 +54,16 @@ export default function MemberPayment() {
 
   const fetchData = async () => {
     try {
-      const [pRes, hRes] = await Promise.all([
+      const [pRes, hRes, configRes, promoRes] = await Promise.all([
         api.get('/memberships'),
-        api.get('/payments')
+        api.get('/payments'),
+        api.get('/settings/public-config').catch(() => ({ data: {} })),
+        api.get('/promotions/active').catch(() => ({ data: null }))
       ]);
       setPlans(pRes.data);
       setHistory(hRes.data);
+      setPublicConfig(configRes.data);
+      setActivePromo(promoRes.data);
     } catch (err) {
       console.error("Failed to load data");
     }
@@ -75,6 +83,25 @@ export default function MemberPayment() {
     return [];
   };
 
+  // --- CALCULATION LOGIC ---
+  const isFirstPayment = history.length === 0;
+  let regFee = 0;
+  let discount = 0;
+
+  if (isFirstPayment && publicConfig?.registration_fee) {
+    regFee = parseFloat(publicConfig.registration_fee) || 0;
+    if (activePromo && activePromo.target === 'REGISTRATION_FEE') {
+      if (activePromo.discountType === 'PERCENTAGE') {
+        discount = regFee * (parseFloat(activePromo.discountValue) / 100);
+      } else {
+        discount = parseFloat(activePromo.discountValue);
+      }
+      if (discount > regFee) discount = regFee; // Don't discount more than the fee itself
+    }
+  }
+
+  const finalAmount = selectedPlan ? parseFloat(selectedPlan.price) + regFee - discount : 0;
+
   // --- Handle New Payment ---
   const handlePay = async (e) => {
     e.preventDefault();
@@ -86,8 +113,14 @@ export default function MemberPayment() {
 
     const payload = new FormData();
     payload.append('plan_id', selectedPlan.plan_id);
-    payload.append('amount', selectedPlan.price);
+    payload.append('amount', finalAmount);
     payload.append('payment_method', method);
+
+    if (regFee > 0) payload.append('registration_fee', regFee);
+    if (discount > 0) {
+      payload.append('discount_amount', discount);
+      if (activePromo) payload.append('promo_id', activePromo.id || activePromo.promo_id);
+    }
 
     if (file) payload.append('slip_image', file);
 
@@ -527,6 +560,32 @@ export default function MemberPayment() {
                 </div>
               </div>
 
+              {/* FEE BREAKDOWN */}
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-4 text-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600">Membership (<span className="font-bold">{selectedPlan.name}</span>)</span>
+                  <span className="font-bold text-gray-900">Rs. {parseInt(selectedPlan.price).toLocaleString()}</span>
+                </div>
+                {regFee > 0 && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Registration Fee (One-time)</span>
+                    <span className="font-bold text-gray-900">Rs. {regFee.toLocaleString()}</span>
+                  </div>
+                )}
+                {discount > 0 && (
+                  <div className="flex justify-between items-center mb-2 text-emerald-600">
+                    <span className="font-bold flex items-center gap-1">
+                      <Tag size={14} /> Promotion Applied
+                    </span>
+                    <span className="font-bold">- Rs. {discount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center text-lg font-black text-blue-700">
+                  <span>Total Due</span>
+                  <span>Rs. {finalAmount.toLocaleString()}</span>
+                </div>
+              </div>
+
               {/* DYNAMIC INPUTS */}
               {method === 'CARD' ? (
                 <div className="p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50 text-center text-gray-500 text-sm">
@@ -564,7 +623,7 @@ export default function MemberPayment() {
                   disabled={showReplaceWarning} // Disable main button while warning is active
                   className={`flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all ${showReplaceWarning ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  Pay Rs. {parseInt(selectedPlan.price).toLocaleString()}
+                  Pay Rs. {finalAmount.toLocaleString()}
                 </button>
               </div>
 

@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CreditCard, LogOut,
   Menu, X, Calendar, ClipboardCheck,
-  TrendingUp, Wrench, Settings, Image as ImageIcon
+  TrendingUp, Wrench, Settings, Image as ImageIcon, Tag
 } from 'lucide-react';
 import { useState } from 'react';
 import logo from '../../assets/images/logo.png';
@@ -119,6 +119,11 @@ export default function AdminLayout() {
           <Link to="/admin/gallery" className={getLinkClass('/admin/gallery')}>
             <ImageIcon size={18} />
             Gallery Config
+          </Link>
+
+          <Link to="/admin/promotions" className={getLinkClass('/admin/promotions')}>
+            <Tag size={18} />
+            Promotions & Discounts
           </Link>
 
           <Link to="/admin/settings" className={getLinkClass('/admin/settings')}>

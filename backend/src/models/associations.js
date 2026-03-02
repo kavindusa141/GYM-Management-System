@@ -12,6 +12,8 @@ const ProgressLog = require('./ProgressLog');
 const WorkoutLog = require('./WorkoutLog');
 const WorkoutExercise = require('./WorkoutExercise');
 const Gallery = require('./Gallery');
+const SystemSetting = require('./SystemSetting');
+const Promotion = require('./Promotion');
 
 // User <-> MemberAssignment
 User.hasMany(MemberAssignment, { foreignKey: 'member_id', as: 'MemberAssignments' });
@@ -49,6 +51,7 @@ WorkoutExercise.belongsTo(WorkoutPlan, { foreignKey: 'plan_id' });
 User.hasMany(Payment, { foreignKey: 'user_id' });
 Payment.belongsTo(User, { foreignKey: 'user_id' });
 Payment.belongsTo(MembershipPlan, { foreignKey: 'plan_id' });
+Payment.belongsTo(Promotion, { foreignKey: 'promo_id', as: 'Promotion' });
 
 // User <-> ClassBooking
 User.hasMany(ClassBooking, { foreignKey: 'user_id' });
@@ -80,5 +83,6 @@ WorkoutLog.belongsTo(WorkoutPlan, { foreignKey: 'plan_id', as: 'Plan' });
 
 module.exports = {
     User, MemberAssignment, UserSubscription, MembershipPlan, MemberProfile, WorkoutPlan,
-    Payment, ClassBooking, GymClass, Attendance, ProgressLog, WorkoutLog, WorkoutExercise, Gallery
+    Payment, ClassBooking, GymClass, Attendance, ProgressLog, WorkoutLog, WorkoutExercise, Gallery,
+    SystemSetting, Promotion
 };

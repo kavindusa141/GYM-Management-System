@@ -43,6 +43,7 @@ import Equipment from './pages/admin/Equipment';
 import AdminSettings from './pages/admin/Settings';
 import AssignTrainer from './pages/admin/AssignTrainer';
 import GalleryManagement from './pages/admin/GalleryManagement';
+import Promotions from './pages/admin/Promotions';
 
 // Trainer Pages
 import TrainerDashboard from './pages/trainer/Dashboard';
@@ -137,6 +138,7 @@ export default function App() {
         <Route path="equipment" element={<Equipment />} />
         <Route path="gallery" element={<GalleryManagement />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="promotions" element={<Promotions />} />
 
       </Route>
 
