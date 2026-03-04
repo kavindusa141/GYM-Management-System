@@ -20,6 +20,8 @@ import MemberProfile from './pages/member/Profile';
 import MemberProfileSetup from './pages/member/ProfileSetup';
 import WorkoutPlans from './pages/member/WorkoutPlans';
 import Payment from './pages/member/Payment';
+import PaymentSuccess from './pages/member/PaymentSuccess';
+import PaymentCancel from './pages/member/PaymentCancel';
 import Receipt from './pages/member/Receipt';
 import Schedule from './pages/member/Schedule';
 import ScanAttendance from './pages/member/ScanAttendance';
@@ -108,6 +110,8 @@ export default function App() {
         <Route path="schedule" element={<Schedule />} />
         <Route path="workouts" element={<WorkoutPlans />} />
         <Route path="payment" element={<Payment />} />
+        <Route path="payment/success" element={<PaymentSuccess />} />
+        <Route path="payment/cancel" element={<PaymentCancel />} />
         <Route path="scan" element={<ScanAttendance />} />
         <Route path="history" element={<History />} />
         <Route path="settings" element={<MemberSettings />} />

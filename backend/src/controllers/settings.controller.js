@@ -111,8 +111,11 @@ exports.changePassword = async (req, res) => {
 
 exports.updateSystemSettings = async (req, res) => {
   try {
-    // Include registration_fee
-    const { system_name, gym_location, contact_email, contact_phone, registration_fee } = req.body;
+    // Include registration_fee and whatsapp settings
+    const {
+      system_name, gym_location, contact_email, contact_phone, registration_fee,
+      whatsapp_enabled, whatsapp_provider, whatsapp_api_key, whatsapp_instance_id
+    } = req.body;
 
     // Helper to update or create
     const upsert = async (key, val) => {
@@ -125,11 +128,17 @@ exports.updateSystemSettings = async (req, res) => {
       }
     };
 
-    if (system_name) await upsert('system_name', system_name);
-    if (gym_location) await upsert('gym_location', gym_location);
-    if (contact_email) await upsert('contact_email', contact_email);
-    if (contact_phone) await upsert('contact_phone', contact_phone);
+    if (system_name !== undefined) await upsert('system_name', system_name);
+    if (gym_location !== undefined) await upsert('gym_location', gym_location);
+    if (contact_email !== undefined) await upsert('contact_email', contact_email);
+    if (contact_phone !== undefined) await upsert('contact_phone', contact_phone);
     if (registration_fee !== undefined) await upsert('registration_fee', registration_fee.toString());
+
+    // WhatsApp Settings
+    if (whatsapp_enabled !== undefined) await upsert('whatsapp_enabled', whatsapp_enabled.toString());
+    if (whatsapp_provider !== undefined) await upsert('whatsapp_provider', whatsapp_provider);
+    if (whatsapp_api_key !== undefined) await upsert('whatsapp_api_key', whatsapp_api_key);
+    if (whatsapp_instance_id !== undefined) await upsert('whatsapp_instance_id', whatsapp_instance_id);
 
     res.json({ message: "System configuration updated" });
   } catch (err) {
@@ -147,9 +156,15 @@ exports.getSystemSettings = async (req, res) => {
     // Default Fallbacks
     if (!config.system_name) config.system_name = "Royal Fitness Kingdom";
     if (!config.gym_location) config.gym_location = "Colombo, Sri Lanka";
-    if (!config.contact_email) config.contact_email = "royalfitnesskingdom12.com";
+    if (!config.contact_email) config.contact_email = "royalfitnesskingdom12@gmail.com";
     if (!config.contact_phone) config.contact_phone = "+94 11 234 5678";
     if (!config.registration_fee) config.registration_fee = "0.00";
+
+    // WhatsApp Fallbacks
+    if (!config.whatsapp_enabled) config.whatsapp_enabled = "false";
+    if (!config.whatsapp_provider) config.whatsapp_provider = "mock";
+    if (!config.whatsapp_api_key) config.whatsapp_api_key = "";
+    if (!config.whatsapp_instance_id) config.whatsapp_instance_id = "";
 
     res.json(config);
   } catch (err) {

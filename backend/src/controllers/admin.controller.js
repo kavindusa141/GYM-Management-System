@@ -2,6 +2,7 @@ const User = require("../models/User");
 const MemberProfile = require("../models/MemberProfile");
 const bcrypt = require("bcrypt");
 const { Op } = require("sequelize");
+const { sendWhatsAppMessage } = require("../services/whatsapp.service");
 
 // 1. Get All Members (PAGINATED & OPTIMIZED)
 exports.getAllMembers = async (req, res) => {
@@ -174,6 +175,11 @@ exports.addMember = async (req, res) => {
 
     const customId = `RFK-M-${newUser.user_id}`;
     await newUser.update({ member_code: customId });
+
+    if (newUser.phone) {
+      const welcomeMsg = `🎉 *Welcome to Royal Fitness!*\n\nHi ${newUser.name.split(' ')[0]}, an administrator has created your gym profile. We are thrilled to have you! Log in to the portal to view your membership plans and book classes. 💪`;
+      sendWhatsAppMessage(newUser.phone, welcomeMsg).catch(err => console.error("WhatsApp welcome error:", err));
+    }
 
     res.status(201).json({ message: "Member added successfully", user: newUser });
 

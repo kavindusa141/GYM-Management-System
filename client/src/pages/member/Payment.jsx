@@ -111,38 +111,55 @@ export default function MemberPayment() {
       return;
     }
 
-    const payload = new FormData();
-    payload.append('plan_id', selectedPlan.plan_id);
-    payload.append('amount', finalAmount);
-    payload.append('payment_method', method);
-
-    if (regFee > 0) payload.append('registration_fee', regFee);
-    if (discount > 0) {
-      payload.append('discount_amount', discount);
-      if (activePromo) payload.append('promo_id', activePromo.id || activePromo.promo_id);
-    }
-
-    if (file) payload.append('slip_image', file);
-
     try {
-      await api.post('/payments/pay', payload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      if (method === 'CARD') {
+        // STRIPE CHECKOUT FLOW
+        const payload = {
+          plan_id: selectedPlan.plan_id,
+          amount: finalAmount,
+          registration_fee: regFee > 0 ? regFee : 0,
+          discount_amount: discount > 0 ? discount : 0,
+          promo_id: (discount > 0 && activePromo) ? (activePromo.id || activePromo.promo_id) : null
+        };
 
-      toast.success(
-        method === 'CARD'
-          ? "Payment successful! Membership updated."
-          : "Slip uploaded! Waiting for admin approval."
-      );
+        const res = await api.post('/payments/create-checkout-session', payload);
 
-      setSelectedPlan(null);
-      setFile(null);
-      setShowReplaceWarning(false);
-      fetchData();
-      setActiveTab('HISTORY');
+        // Redirect to Stripe Checkout
+        if (res.data && res.data.url) {
+          window.location.href = res.data.url;
+        } else {
+          toast.error("Failed to initialize payment gateway");
+        }
+
+      } else {
+        // MANUAL BANK SLIP UPLOAD FLOW
+        const payload = new FormData();
+        payload.append('plan_id', selectedPlan.plan_id);
+        payload.append('amount', finalAmount);
+        payload.append('payment_method', method);
+
+        if (regFee > 0) payload.append('registration_fee', regFee);
+        if (discount > 0) {
+          payload.append('discount_amount', discount);
+          if (activePromo) payload.append('promo_id', activePromo.id || activePromo.promo_id);
+        }
+
+        if (file) payload.append('slip_image', file);
+
+        await api.post('/payments/pay', payload, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        toast.success("Slip uploaded! Waiting for admin approval.");
+        setSelectedPlan(null);
+        setFile(null);
+        setShowReplaceWarning(false);
+        fetchData();
+        setActiveTab('HISTORY');
+      }
 
     } catch (err) {
-      toast.error("Payment failed");
+      toast.error(err.response?.data?.message || "Payment failed");
     }
   };
 
@@ -589,8 +606,8 @@ export default function MemberPayment() {
               {/* DYNAMIC INPUTS */}
               {method === 'CARD' ? (
                 <div className="p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50 text-center text-gray-500 text-sm">
-                  <p className="font-medium">Secure Payment Gateway Simulation</p>
-                  <p className="text-xs mt-1">Click "Pay Now" to complete transaction.</p>
+                  <p className="font-bold text-gray-800">Pay Securely with Stripe</p>
+                  <p className="text-xs mt-1">Clicking "Pay Now" will redirect you to our secure payment portal.</p>
                 </div>
               ) : (
                 <div>

@@ -17,6 +17,9 @@ sequelize.authenticate()
     const startExpiryScheduler = require('./src/cron/expiryScheduler');
     startExpiryScheduler();
 
+    const { startScheduler } = require('./src/jobs/notification.jobs');
+    startScheduler();
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });

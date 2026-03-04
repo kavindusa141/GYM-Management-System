@@ -4,6 +4,7 @@ const User = require("../models/User");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE } = require("../utils/emailTemplates");
+const { sendWhatsAppMessage } = require("../services/whatsapp.service");
 require("dotenv").config();
 
 // Configure Email Transporter
@@ -95,6 +96,12 @@ exports.verifyOtp = async (req, res) => {
     user.otp_code = null;
     user.otp_expires_at = null;
     await user.save();
+
+    // Send Welcome WhatsApp Message
+    if (user.phone) {
+      const welcomeMsg = `🎉 *Welcome to Royal Fitness!*\n\nHi ${user.name.split(' ')[0]}, your account has been successfully verified. We are thrilled to have you! Log in to the portal to view your membership plans and book classes. 💪`;
+      sendWhatsAppMessage(user.phone, welcomeMsg).catch(err => console.error("WhatsApp welcome error:", err));
+    }
 
     res.json({ message: "Email verified successfully! You can now login." });
 

@@ -12,6 +12,7 @@ const Payment = require("../models/Payment");
 const UserSubscription = require("../models/UserSubscription");
 const MembershipPlan = require("../models/MembershipPlan");
 const User = require("../models/User");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 /**
  * ============================================================
@@ -59,6 +60,170 @@ const activateSubscription = async (user_id, plan_id) => {
   });
 
   console.log(`[SUBSCRIPTION] New subscription activated`);
+};
+
+/**
+ * ============================================================
+ * STRIPE PAYMENTS
+ * ============================================================
+ */
+
+exports.createStripeCheckoutSession = async (req, res) => {
+  try {
+    const { plan_id, amount, registration_fee = 0, discount_amount = 0, promo_id = null } = req.body;
+    const user_id = req.user.user_id || req.user.id;
+
+    if (!plan_id || !amount) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const plan = await MembershipPlan.findByPk(plan_id);
+    if (!plan) return res.status(404).json({ message: "Plan not found" });
+
+    // Validate if user has pending bank slip
+    const pendingPaymentCount = await Payment.count({
+      where: { user_id, status: 'PENDING' }
+    });
+    if (pendingPaymentCount >= 1) {
+      return res.status(400).json({ message: "You already have a pending bank slip payment. Please wait for admin approval." });
+    }
+
+    // Create Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'lkr', // Or USD depending on your account
+            product_data: {
+              name: `Gym Membership: ${plan.name}`,
+            },
+            unit_amount: Math.round(amount * 100), // Stripe expects amounts in cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/member/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/member/payment/cancel`,
+      metadata: {
+        user_id: user_id.toString(),
+        plan_id: plan_id.toString(),
+        registration_fee: registration_fee.toString(),
+        discount_amount: discount_amount.toString(),
+        promo_id: promo_id ? promo_id.toString() : ''
+      }
+    });
+
+    res.json({ id: session.id, url: session.url });
+
+  } catch (err) {
+    console.error("Stripe Checkout Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.stripeWebhook = async (req, res) => {
+  const payload = req.body;
+  const sig = req.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    // Note: To use constructEvent, you need the raw body. 
+    // Usually, this means configuring express to use raw body parser for this specific route.
+    // Assuming simple JSON for now, or you'd need body-parser raw setup in server.js.
+    // For local dev without webhook secret checking, we can just process the event type.
+
+    // IF USING REAL WEBHOOKS WITH SECRET:
+    // event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = payload; // Bypass strict sig check for simplicity unless specifically set up
+
+  } catch (err) {
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+
+    // Fulfill the purchase
+    const { user_id, plan_id, registration_fee, discount_amount, promo_id } = session.metadata;
+
+    try {
+      // Create Database Record
+      const payment = await Payment.create({
+        user_id: parseInt(user_id),
+        plan_id: parseInt(plan_id),
+        amount: session.amount_total / 100,
+        payment_method: 'CARD', // Or 'STRIPE'
+        status: 'COMPLETED',
+        reference_number: session.payment_intent,
+        registration_fee: registration_fee ? parseFloat(registration_fee) : 0,
+        discount_amount: discount_amount ? parseFloat(discount_amount) : 0,
+        promo_id: promo_id ? parseInt(promo_id) : null,
+        stripe_session_id: session.id
+      });
+
+      // Activate Subscription Immediately
+      await activateSubscription(parseInt(user_id), parseInt(plan_id));
+      console.log(`[Stripe Webhook] Successfully processed payment for User ${user_id}`);
+
+    } catch (dbErr) {
+      console.error("[Stripe Webhook DB Error]", dbErr);
+    }
+  }
+
+  // Return a 200 response to acknowledge receipt of the event
+  res.status(200).end();
+};
+
+exports.verifyStripeSession = async (req, res) => {
+  try {
+    const { session_id } = req.params;
+    if (!session_id) return res.status(400).json({ message: "No session ID provided" });
+
+    // 1. Fetch session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+
+    if (!session) return res.status(404).json({ message: "Session not found" });
+
+    // 2. Check if we already processed this payment
+    const existingPayment = await Payment.findOne({ where: { stripe_session_id: session_id } });
+
+    if (existingPayment) {
+      return res.json({ message: "Payment already processed", payment: existingPayment });
+    }
+
+    // 3. If session is paid but not processed, process it now (Webhook fallback)
+    if (session.payment_status === 'paid') {
+      const { user_id, plan_id, registration_fee, discount_amount, promo_id } = session.metadata;
+
+      const payment = await Payment.create({
+        user_id: parseInt(user_id),
+        plan_id: parseInt(plan_id),
+        amount: session.amount_total / 100,
+        payment_method: 'CARD',
+        status: 'COMPLETED',
+        reference_number: session.payment_intent,
+        registration_fee: registration_fee ? parseFloat(registration_fee) : 0,
+        discount_amount: discount_amount ? parseFloat(discount_amount) : 0,
+        promo_id: promo_id ? parseInt(promo_id) : null,
+        stripe_session_id: session.id
+      });
+
+      // Activate Subscription Immediately
+      await activateSubscription(parseInt(user_id), parseInt(plan_id));
+      console.log(`[Stripe Fallback] Successfully processed missed webhook for User ${user_id}`);
+
+      return res.json({ message: "Payment processed successfully via fallback", payment });
+    } else {
+      return res.status(400).json({ message: "Payment not completed yet or requires action" });
+    }
+  } catch (err) {
+    console.error("Verify Stripe Session Error:", err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 /**

@@ -6,6 +6,9 @@ const {
   verifyPayment,
   getPaymentReceipt,
   downloadReceiptPDF,
+  createStripeCheckoutSession,
+  verifyStripeSession,
+  stripeWebhook,
   reuploadSlip // <--- Added new controller function
 } = require("../controllers/payment.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
@@ -29,6 +32,25 @@ const upload = multer({ storage });
 // ===============================
 // ROUTES
 // ===============================
+
+// ✅ STRIPE WEBHOOK (Must be before verification middleware or custom raw body needed)
+router.post("/webhook", stripeWebhook);
+
+// ✅ MEMBER creates Stripe Checkout Session
+router.post(
+  "/create-checkout-session",
+  verifyToken,
+  allowRoles("MEMBER"),
+  createStripeCheckoutSession
+);
+
+// ✅ MEMBER verifies Stripe Checkout Session on Success page
+router.get(
+  "/verify-stripe-session/:session_id",
+  verifyToken,
+  allowRoles("MEMBER"),
+  verifyStripeSession
+);
 
 // ✅ MEMBER uploads bank slip
 router.post(

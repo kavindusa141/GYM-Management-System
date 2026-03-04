@@ -59,6 +59,11 @@ const Payment = sequelize.define("Payment", {
     allowNull: true,
     defaultValue: 0.00
   },
+  // --- STRIPE INTEGRATION ---
+  stripe_session_id: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   promo_id: {
     type: DataTypes.INTEGER,
     allowNull: true
