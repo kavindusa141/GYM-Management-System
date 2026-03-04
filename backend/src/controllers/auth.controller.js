@@ -1,12 +1,13 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const nodemailer = require("nodemailer"); // Import Nodemailer
+const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const { EMAIL_VERIFY_TEMPLATE, PASSWORD_RESET_TEMPLATE } = require("../utils/emailTemplates");
+const { sendWhatsAppMessage } = require("../services/whatsapp.service");
 require("dotenv").config();
 
-// Configure Email Transporter (Use your email details)
+// Configure Email Transporter
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
@@ -22,19 +23,22 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
 
+    // Check if user exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
+      // Note: If you previously crashed here, the user might already exist in the DB.
+      // Try a different email address if you see this error.
       return res.status(400).json({ message: "Email already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // Expires in 10 mins
 
-    // Create user (Status = false)
-    await User.create({
+    // --- FIX IS HERE: Assign result to 'newUser' ---
+    const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
@@ -45,20 +49,18 @@ exports.register = async (req, res) => {
       otp_expires_at: otpExpiry
     });
 
-    // 2. Generate Member ID (RFK-M-ID)
+    // 2. Generate Member ID (RFK-M-ID) using the new user's ID
     const customId = `RFK-M-${newUser.user_id}`;
     await newUser.update({ member_code: customId });
 
-
     // --- PREPARE HTML EMAIL ---
-    // Replace the placeholders in the template with actual data
     const emailHtml = EMAIL_VERIFY_TEMPLATE
       .replace("{{email}}", email)
       .replace("{{otp}}", otp);
 
     // Send Email
     await transporter.sendMail({
-      from: `"Royal Fitness" <${process.env.SENDER_EMAIL}>`, 
+      from: `"Royal Fitness" <${process.env.SENDER_EMAIL}>`,
       to: email,
       subject: "Your Verification Code",
       html: emailHtml,
@@ -68,7 +70,7 @@ exports.register = async (req, res) => {
     res.status(201).json({ message: "OTP sent to email. Please verify." });
 
   } catch (err) {
-    console.error(err);
+    console.error("Register Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -79,7 +81,7 @@ exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     const user = await User.findOne({ where: { email } });
-    
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -94,6 +96,12 @@ exports.verifyOtp = async (req, res) => {
     user.otp_code = null;
     user.otp_expires_at = null;
     await user.save();
+
+    // Send Welcome WhatsApp Message
+    if (user.phone) {
+      const welcomeMsg = `🎉 *Welcome to Royal Fitness!*\n\nHi ${user.name.split(' ')[0]}, your account has been successfully verified. We are thrilled to have you! Log in to the portal to view your membership plans and book classes. 💪`;
+      sendWhatsAppMessage(user.phone, welcomeMsg).catch(err => console.error("WhatsApp welcome error:", err));
+    }
 
     res.json({ message: "Email verified successfully! You can now login." });
 
@@ -112,7 +120,12 @@ exports.login = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if account is verified
+    // Check if user account is deleted (if column exists)
+    if (user.is_deleted === true) {
+      return res.status(403).json({ message: "This account has been deleted and cannot access the system." });
+    }
+
+    // Check if account is verifieda
     if (!user.status) {
       return res.status(403).json({ message: "Please verify your email before logging in." });
     }
@@ -123,7 +136,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.user_id, role: user.role },
+      { id: user.user_id, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -138,10 +151,10 @@ exports.login = async (req, res) => {
     });
 
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
-
 
 // 4. FORGOT PASSWORD (Send Reset Link)
 exports.forgotPassword = async (req, res) => {
@@ -155,13 +168,13 @@ exports.forgotPassword = async (req, res) => {
 
     // Generate secure token
     const resetToken = crypto.randomBytes(32).toString("hex");
-    
-    // Hash it before saving to DB (Security Best Practice)
+
+    // Hash it before saving to DB
     user.reset_password_token = crypto.createHash("sha256").update(resetToken).digest("hex");
     user.reset_password_expires = Date.now() + 30 * 60 * 1000; // 30 minutes
     await user.save();
 
-    // Create Reset URL (Point to your Frontend)
+    // Create Reset URL
     const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
 
     // Prepare Email
@@ -195,8 +208,7 @@ exports.resetPassword = async (req, res) => {
     const user = await User.findOne({
       where: {
         reset_password_token: resetTokenHash,
-        // Check if expiration time is in the future
-        reset_password_expires: { [require("sequelize").Op.gt]: Date.now() } 
+        reset_password_expires: { [require("sequelize").Op.gt]: Date.now() }
       }
     });
 

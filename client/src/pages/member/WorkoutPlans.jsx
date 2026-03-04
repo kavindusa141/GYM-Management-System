@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import toast from 'react-hot-toast'; 
-import { Dumbbell, Calendar, User, ChevronDown, ChevronUp, Activity, CheckCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Dumbbell, Calendar, User, ChevronDown, ChevronUp, Activity, CheckCircle, Globe } from 'lucide-react';
 
 export default function WorkoutPlans() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedPlan, setExpandedPlan] = useState(null);
-  
+  const [activeTab, setActiveTab] = useState('personal'); // 'personal' | 'common'
+
   // Logging State
   const [showLogModal, setShowLogModal] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
@@ -19,10 +20,10 @@ export default function WorkoutPlans() {
     try {
       const res = await api.get('/workouts/my-plans');
       setPlans(res.data);
-    } catch (error) { 
-      console.error("Error loading plans"); 
-    } finally { 
-      setLoading(false); 
+    } catch (error) {
+      console.error("Error loading plans");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,88 +45,137 @@ export default function WorkoutPlans() {
     }
   };
 
+  // Filter Plans based on Tab
+  const filteredPlans = plans.filter(p => activeTab === 'common' ? p.is_common : !p.is_common);
+
   return (
     <div className="space-y-6 animate-fade-in relative pt-4">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Workout Plans</h1>
-        <p className="text-gray-500">View routines and log your progress.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">My Workout Plans</h1>
+          <p className="text-gray-500">View routines and log your progress.</p>
+        </div>
+
+        {/* TABS */}
+        <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
+          <button
+            onClick={() => setActiveTab('personal')}
+            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'personal' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <User size={14} /> My Plans
+          </button>
+          <button
+            onClick={() => setActiveTab('common')}
+            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'common' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <Globe size={14} /> Common Plans
+          </button>
+        </div>
       </div>
 
-      {loading ? ( <div className="text-center py-20 text-gray-400">Loading...</div> ) : 
-       plans.length === 0 ? ( <div className="p-10 text-center text-gray-500">No plans yet.</div> ) : (
-        <div className="space-y-4">
-          {plans.map((plan) => (
-            <div key={plan.plan_id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              {/* Header */}
-              <div onClick={() => setExpandedPlan(expandedPlan === plan.plan_id ? null : plan.plan_id)} className="p-6 cursor-pointer hover:bg-gray-50 flex flex-col md:flex-row justify-between md:items-center gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0"><Activity size={24} /></div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
-                    <div className="flex gap-4 mt-1 text-sm text-gray-500">
-                      <span className="flex items-center gap-1"><User size={14}/> {plan.Trainer?.name || 'Staff'}</span>
-                      {/* Date Fix Applied Here */}
-                      <span className="flex items-center gap-1"><Calendar size={14}/> {new Date(plan.createdAt || plan.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                   <button 
-                     onClick={(e) => openLogModal(e, plan.plan_id)}
-                     className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
-                   >
-                     <CheckCircle size={16}/> Log Workout
-                   </button>
-                   {expandedPlan === plan.plan_id ? <ChevronUp size={20} className="text-gray-400"/> : <ChevronDown size={20} className="text-gray-400"/>}
-                </div>
-              </div>
-
-              {/* Details */}
-              {expandedPlan === plan.plan_id && (
-                <div className="border-t border-gray-100 bg-gray-50/50 p-6">
-                   {plan.description && (
-                    <div className="mb-6 bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
-                      <strong>Trainer Notes:</strong> {plan.description}
-                    </div>
-                   )}
-                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="text-xs text-gray-400 uppercase bg-gray-100">
-                        <tr><th className="px-4 py-3">Exercise</th><th className="px-4 py-3">Sets</th><th className="px-4 py-3">Reps</th><th className="px-4 py-3">Notes</th></tr>
-                      </thead>
-                      <tbody className="bg-white">
-                        {plan.WorkoutExercises?.map((ex, i) => (
-                          <tr key={i} className="border-b border-gray-50">
-                            <td className="px-4 py-3 font-bold">{ex.name}</td>
-                            <td className="px-4 py-3 font-mono text-blue-600">{ex.sets}</td>
-                            <td className="px-4 py-3">{ex.reps}</td>
-                            <td className="px-4 py-3 text-gray-500 italic">{ex.notes}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+      {loading ? (<div className="text-center py-20 text-gray-400">Loading...</div>) :
+        filteredPlans.length === 0 ? (
+          <div className="py-20 text-center border-2 border-dashed border-gray-200 rounded-2xl mx-auto max-w-lg">
+            <div className="w-16 h-16 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+              {activeTab === 'common' ? <Globe size={32} /> : <Dumbbell size={32} />}
             </div>
-          ))}
-        </div>
-      )}
+            <h3 className="text-lg font-bold text-gray-900 mb-1">No {activeTab} plans found</h3>
+            <p className="text-gray-500 text-sm">
+              {activeTab === 'common'
+                ? "Check back later for community workouts!"
+                : "Ask your trainer to assign a new plan."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredPlans.map((plan) => (
+              <div key={plan.plan_id} className={`rounded-2xl shadow-sm border overflow-hidden ${plan.is_common ? 'bg-indigo-50/30 border-indigo-100' : 'bg-white border-gray-100'}`}>
+                {/* Header */}
+                <div onClick={() => setExpandedPlan(expandedPlan === plan.plan_id ? null : plan.plan_id)} className="p-6 cursor-pointer hover:bg-gray-50/50 flex flex-col md:flex-row justify-between md:items-center gap-4 transition-colors">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${plan.is_common ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'}`}>
+                      {plan.is_common ? <Globe size={24} /> : <Activity size={24} />}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
+                      <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
+                        {plan.is_common ? (
+                          <span className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded font-bold text-xs"><Globe size={12} /> Common Plan</span>
+                        ) : (
+                          <span className="flex items-center gap-1"><User size={14} /> {plan.Trainer?.name || 'Personal Trainer'}</span>
+                        )}
 
-      {/* MODAL for Logging - Position Updated */}
+                        {/* Date Range Display */}
+                        {plan.start_date && plan.end_date ? (
+                          <span className="flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold text-gray-600">
+                            <Calendar size={12} />
+                            {new Date(plan.start_date).toLocaleDateString()} - {new Date(plan.end_date).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(plan.createdAt || plan.created_at).toLocaleDateString()}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {!plan.is_common && (
+                      <button
+                        onClick={(e) => openLogModal(e, plan.plan_id)}
+                        className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
+                      >
+                        <CheckCircle size={16} /> Log Workout
+                      </button>
+                    )}
+                    {expandedPlan === plan.plan_id ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+                  </div>
+                </div>
+
+                {/* Details */}
+                {expandedPlan === plan.plan_id && (
+                  <div className="border-t border-gray-100 bg-gray-50/50 p-6">
+                    {plan.description && (
+                      <div className="mb-6 bg-blue-50 text-blue-800 p-4 rounded-xl text-sm leading-relaxed">
+                        <strong>Trainer Notes:</strong> {plan.description}
+                      </div>
+                    )}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-400 uppercase bg-gray-100">
+                          <tr><th className="px-4 py-3">Exercise</th><th className="px-4 py-3">Sets</th><th className="px-4 py-3">Reps</th><th className="px-4 py-3">Notes</th></tr>
+                        </thead>
+                        <tbody className="bg-white">
+                          {plan.WorkoutExercises?.map((ex, i) => (
+                            <tr key={i} className="border-b border-gray-50">
+                              <td className="px-4 py-3 font-bold">{ex.name}</td>
+                              <td className="px-4 py-3 font-mono text-blue-600">{ex.sets}</td>
+                              <td className="px-4 py-3">{ex.reps}</td>
+                              <td className="px-4 py-3 text-gray-500 italic">{ex.notes}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+      {/* MODAL for Logging */}
       {showLogModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 pt-24 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in relative">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><CheckCircle className="text-green-500"/> Log Session</h2>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><CheckCircle className="text-green-500" /> Log Session</h2>
             <form onSubmit={handleLogSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Duration (Minutes)</label>
-                <input type="number" required className="w-full p-3 border rounded-xl" placeholder="e.g. 45" 
-                  value={logData.duration_mins} onChange={e => setLogData({...logData, duration_mins: e.target.value})} />
+                <input type="number" required className="w-full p-3 border rounded-xl" placeholder="e.g. 45"
+                  value={logData.duration_mins} onChange={e => setLogData({ ...logData, duration_mins: e.target.value })} />
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">How did it feel?</label>
-                <select className="w-full p-3 border rounded-xl" value={logData.mood} onChange={e => setLogData({...logData, mood: e.target.value})}>
+                <select className="w-full p-3 border rounded-xl" value={logData.mood} onChange={e => setLogData({ ...logData, mood: e.target.value })}>
                   <option value="Great">Great </option>
                   <option value="Good">Good </option>
                   <option value="Hard">Hard </option>
@@ -135,7 +185,7 @@ export default function WorkoutPlans() {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Notes (Optional)</label>
                 <textarea className="w-full p-3 border rounded-xl" rows="2" placeholder="Heavier weights next time..."
-                  value={logData.notes} onChange={e => setLogData({...logData, notes: e.target.value})}></textarea>
+                  value={logData.notes} onChange={e => setLogData({ ...logData, notes: e.target.value })}></textarea>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowLogModal(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl">Cancel</button>

@@ -1,10 +1,19 @@
 const MemberProfile = require("../models/MemberProfile");
+const User = require("../models/User"); // Import User
 
-// GET: My Profile
+// GET: My Profile (With User Details)
 exports.getProfile = async (req, res) => {
   try {
-    const profile = await MemberProfile.findOne({ where: { user_id: req.user.id } });
-    // Return empty object if no profile found (prevents frontend errors)
+    const profile = await MemberProfile.findOne({ 
+      where: { user_id: req.user.id },
+      // Join with User table to get Name and Email
+      include: [{ 
+        model: User, 
+        attributes: ['name', 'email', 'member_code', 'phone'] 
+      }]
+    });
+    
+    // Return profile or empty object if not set
     res.json(profile || {});
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -20,15 +29,14 @@ exports.updateProfile = async (req, res) => {
       fitness_goal, activity_level, emergency_contact, medical_conditions 
     } = req.body;
 
-    // --- VALIDATION 1: BMI Calculation ---
+    // 1. Calculate BMI
     let bmi = null;
     if (weight && height) {
       const heightInMeters = height / 100;
       bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
     }
 
-    // --- VALIDATION 2: Age Calculation ---
-    // We calculate age automatically from DOB to ensure accuracy
+    // 2. Calculate Age
     let calculatedAge = null;
     if (date_of_birth) {
       const dob = new Date(date_of_birth);
@@ -37,13 +45,12 @@ exports.updateProfile = async (req, res) => {
       calculatedAge = Math.abs(age_dt.getUTCFullYear() - 1970);
     }
 
-    // --- VALIDATION 3: Check for Existing Profile ---
     let profile = await MemberProfile.findOne({ where: { user_id: userId } });
 
     const profileData = {
       user_id: userId,
       date_of_birth,
-      age: calculatedAge, // Save the calculated age
+      age: calculatedAge, 
       gender,
       weight,
       height,
@@ -55,11 +62,9 @@ exports.updateProfile = async (req, res) => {
     };
 
     if (profile) {
-      // Update existing profile (avoid duplicate error)
       await profile.update(profileData);
       res.json({ message: "Profile updated successfully", profile });
     } else {
-      // Create new profile
       profile = await MemberProfile.create(profileData);
       res.status(201).json({ message: "Profile created successfully", profile });
     }

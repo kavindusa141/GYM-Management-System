@@ -1,25 +1,42 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { Search, Trash2, UserPlus, X, Phone, Mail, CheckCircle, XCircle } from 'lucide-react';
+import {
+  Search, UserPlus, Trash2, Mail, Phone,
+  CheckCircle, Clock, X, Loader2, Eye, User, Lock // Added Icons
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function MemberManagement() {
-  // --- STATE MANAGEMENT ---
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  
-  // Form state for adding a new member
-  const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', password: ''
-  });
+  const [filterType, setFilterType] = useState('ALL');
 
-  // --- FETCH MEMBERS ---
+  // NEW: Pagination State
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ totalPages: 1, totalRecords: 0 });
+  const [summary, setSummary] = useState({ ALL: 0, ACTIVE_SUB: 0, EXPIRED_SUB: 0, NO_PLAN: 0, PENDING_VERIFICATION: 0 });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchMembers();
+    }, 500); // 500ms debounce to prevent API spam while typing
+    return () => clearTimeout(timer);
+  }, [searchTerm, filterType, page]);
+
   const fetchMembers = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/admin/members');
-      setMembers(res.data);
+      const res = await api.get('/admin/members', {
+        params: { page, limit: 10, search: searchTerm, filter: filterType }
+      });
+      setMembers(res.data.members);
+      setPagination(res.data.pagination);
+
+      if (res.data.summary && Object.keys(res.data.summary).length > 0) {
+        setSummary(res.data.summary);
+      }
     } catch (error) {
       toast.error("Failed to load members");
     } finally {
@@ -27,138 +44,180 @@ export default function MemberManagement() {
     }
   };
 
-  // Run on component mount
-  useEffect(() => {
-    fetchMembers();
-  }, []);
-
-  // --- HANDLERS ---
-
-  // 1. Handle Add Member Form Submit
-  const handleAddMember = async (e) => {
-    e.preventDefault();
-    try {
-      await api.post('/admin/members', formData);
-      toast.success("Member added successfully!");
-      setShowModal(false); // Close modal
-      setFormData({ name: '', email: '', phone: '', password: '' }); // Reset form
-      fetchMembers(); // Refresh list
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to add member");
-    }
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setPage(1); // Reset to page 1 on new search
   };
 
-  // 2. Handle Delete Member
+  const handleFilterChange = (type) => {
+    setFilterType(type);
+    setPage(1); // Reset to page 1 on new filter
+  };
+
   const handleDelete = async (id) => {
-    if(!window.confirm("Are you sure you want to delete this member? This cannot be undone.")) return;
-    
+    if (!window.confirm("Are you sure? This will soft-delete the member.")) return;
     try {
-      await api.delete(`/admin/users/${id}`);
-      toast.success("Member deleted");
-      // Remove from local state immediately (UI update)
-      setMembers(members.filter(m => m.user_id !== id));
-    } catch (error) {
+      await api.delete(`/admin/members/${id}`);
+      toast.success("Member removed");
+      fetchMembers();
+    } catch (err) {
       toast.error("Failed to delete member");
     }
   };
 
-  // 3. Filter Members based on Search Term
-  const filteredMembers = members.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
-    <div className="space-y-6 animate-fade-in">
-      
-      {/* --- HEADER SECTION --- */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 animate-fade-in pb-20 relative">
+
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Member Management</h1>
-          <p className="text-gray-500">View, search, and manage your gym members.</p>
+          <h1 className="text-2xl font-black text-gray-900">Member Management</h1>
+          <p className="text-gray-500">Manage accounts, subscriptions, and verifications.</p>
         </div>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20"
+        <Link
+          to="new"
+          className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
         >
-          <UserPlus className="w-5 h-5" /> Add Member
-        </button>
+          <UserPlus size={20} /> Add Member
+        </Link>
       </div>
 
-      {/* --- SEARCH BAR --- */}
-      <div className="relative">
-        <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
-        <input 
-          type="text" 
-          placeholder="Search members by name or email..." 
-          className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+      {/* FILTERS */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <FilterTab
+          label="All Members"
+          count={summary.ALL || 0}
+          active={filterType === 'ALL'}
+          onClick={() => handleFilterChange('ALL')}
+        />
+        <FilterTab
+          label="Active Plan"
+          count={summary.ACTIVE_SUB || 0}
+          active={filterType === 'ACTIVE_SUB'}
+          onClick={() => handleFilterChange('ACTIVE_SUB')}
+          color="green"
+        />
+        <FilterTab
+          label="Expired Plan"
+          count={summary.EXPIRED_SUB || 0}
+          active={filterType === 'EXPIRED_SUB'}
+          onClick={() => handleFilterChange('EXPIRED_SUB')}
+          color="red"
+        />
+        <FilterTab
+          label="No Plan"
+          count={summary.NO_PLAN || 0}
+          active={filterType === 'NO_PLAN'}
+          onClick={() => handleFilterChange('NO_PLAN')}
+          color="gray"
+        />
+        <FilterTab
+          label="Unverified"
+          count={summary.PENDING_VERIFICATION || 0}
+          active={filterType === 'PENDING_VERIFICATION'}
+          onClick={() => handleFilterChange('PENDING_VERIFICATION')}
+          color="orange"
         />
       </div>
 
-      {/* --- MEMBERS TABLE --- */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* SEARCH */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <input
+          type="text"
+          placeholder="Search by Name, Email or Member ID..."
+          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+      </div>
+
+      {/* TABLE */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 text-gray-500 font-bold text-xs uppercase tracking-wider border-b border-gray-100">
               <tr>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Member</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Joined</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                <th className="p-5">Member</th>
+                <th className="p-5">Contact</th>
+                <th className="p-5">Status</th>
+                <th className="p-5">Membership</th>
+                <th className="p-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan="5" className="text-center py-8 text-gray-500">Loading members...</td></tr>
-              ) : filteredMembers.length === 0 ? (
-                <tr><td colSpan="5" className="text-center py-8 text-gray-500">No members found.</td></tr>
+                <tr><td colSpan="5" className="p-10 text-center text-gray-400">Loading Members...</td></tr>
+              ) : members.length === 0 ? (
+                <tr><td colSpan="5" className="p-10 text-center text-gray-400">No members found matching your criteria.</td></tr>
               ) : (
-                filteredMembers.map((member) => (
-                  <tr key={member.user_id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
+                members.map(member => (
+                  <tr key={member.user_id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                          {member.name.charAt(0).toUpperCase()}
+                        <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center font-bold">
+                          {member.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{member.name}</p>
-                          <p className="text-xs text-blue-600 font-mono font-bold">
-                            {member.member_code ? member.member_code : `ID: ${member.user_id}`}
-                                       
-                          </p>
+                          <p className="font-bold text-gray-900">{member.name}</p>
+                          <p className="text-xs text-gray-500 font-mono">{member.member_code || 'No ID'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1 text-sm text-gray-600">
-                        <span className="flex items-center gap-2"><Mail className="w-3 h-3" /> {member.email}</span>
-                        {member.phone && <span className="flex items-center gap-2"><Phone className="w-3 h-3" /> {member.phone}</span>}
+                    <td className="p-5">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Mail size={12} /> {member.email}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Phone size={12} /> {member.phone}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      {member.status ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          <CheckCircle className="w-3 h-3" /> Active
+                    <td className="p-5">
+                      {member.is_verified ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                          <CheckCircle size={12} /> Verified
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                          <XCircle className="w-3 h-3" /> Pending
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                          <Clock size={12} /> Pending
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(member.created_at).toLocaleDateString()}
+                    <td className="p-5">
+                      <div className="space-y-1">
+                        {member.subscription_status === 'ACTIVE' && (
+                          <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md">
+                            Active: {member.current_plan}
+                          </span>
+                        )}
+                        {member.subscription_status === 'EXPIRED' && (
+                          <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">
+                            Expired: {member.current_plan}
+                          </span>
+                        )}
+                        {member.subscription_status === 'NO_PLAN' && (
+                          <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+                            No Plan
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
+                    <td className="p-5 text-right flex justify-end gap-2">
+                      <Link
+                        to={`${member.user_id}`}
+                        className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors"
+                        title="View Profile"
+                      >
+                        <Eye size={18} />
+                      </Link>
+                      <button
                         onClick={() => handleDelete(member.user_id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
                         title="Delete Member"
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 size={18} />
                       </button>
                     </td>
                   </tr>
@@ -167,67 +226,64 @@ export default function MemberManagement() {
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* --- ADD MEMBER MODAL --- */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="text-lg font-bold text-gray-900">Add New Member</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+        {/* SERVER-SIDE PAGINATION CONTROLS */}
+        {!loading && pagination.totalPages > 1 && (
+          <div className="p-5 border-t border-gray-100 flex items-center justify-between text-sm bg-gray-50/50">
+            <span className="text-gray-500">
+              Showing <span className="font-bold text-gray-900">{members.length}</span> of <span className="font-bold text-gray-900">{pagination.totalRecords}</span> matching members
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-100 transition-colors font-medium text-gray-700 shadow-sm"
+              >
+                Previous
+              </button>
+
+              <div className="px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-lg border border-blue-100 shadow-sm">
+                Page {page} of {pagination.totalPages}
+              </div>
+
+              <button
+                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages}
+                className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50 hover:bg-gray-100 transition-colors font-medium text-gray-700 shadow-sm"
+              >
+                Next
               </button>
             </div>
-            
-            <form onSubmit={handleAddMember} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                <input 
-                  type="text" required 
-                  className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <input 
-                  type="email" required 
-                  className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                <input 
-                  type="text" required 
-                  className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Initial Password</label>
-                <input 
-                  type="text" required 
-                  className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono"
-                  placeholder="e.g. 123456"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                />
-              </div>
-
-              <div className="pt-2">
-                <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all">
-                  Create Account
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
     </div>
   );
 }
+
+// --- INTERNAL COMPONENTS ---
+
+function FilterTab({ label, count, active, onClick, color = 'blue' }) {
+  const activeClasses = {
+    blue: 'bg-blue-600 text-white shadow-blue-500/30',
+    green: 'bg-green-600 text-white shadow-green-500/30',
+    red: 'bg-red-600 text-white shadow-red-500/30',
+    orange: 'bg-orange-500 text-white shadow-orange-500/30',
+    gray: 'bg-gray-600 text-white shadow-gray-500/30'
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`p-3 rounded-xl border transition-all flex flex-col items-center justify-center gap-1 ${active
+        ? `${activeClasses[color]} shadow-lg border-transparent`
+        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+        }`}
+    >
+      <span className={`text-xl font-black ${active ? 'text-white' : 'text-gray-900'}`}>{count}</span>
+      <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+    </button>
+  );
+}
+

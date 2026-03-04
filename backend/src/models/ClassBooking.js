@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 const User = require("./User");
-const GymClass = require("./GymClass"); // <--- Changed from 'Class'
+const GymClass = require("./GymClass");
 
 const ClassBooking = sequelize.define("ClassBooking", {
   booking_id: {
@@ -21,12 +21,12 @@ const ClassBooking = sequelize.define("ClassBooking", {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: GymClass, // <--- Link to GymClass
+      model: GymClass,
       key: 'class_id'
     }
   },
   booking_date: {
-    type: DataTypes.DATEONLY, // Crucial: Stores WHICH Monday they booked (e.g., 2025-10-25)
+    type: DataTypes.DATEONLY,
     allowNull: false
   },
   status: {
@@ -40,9 +40,6 @@ const ClassBooking = sequelize.define("ClassBooking", {
 });
 
 // Associations
-ClassBooking.belongsTo(User, { foreignKey: 'user_id' });
-ClassBooking.belongsTo(GymClass, { foreignKey: 'class_id' });
-GymClass.hasMany(ClassBooking, { foreignKey: 'class_id' });
-User.hasMany(ClassBooking, { foreignKey: 'user_id' });
+// Associations are defined in associations.js
 
 module.exports = ClassBooking;

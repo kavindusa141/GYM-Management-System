@@ -29,6 +29,15 @@ const Attendance = sequelize.define("Attendance", {
   check_out: { // Matches your DB column 'check_out'
     type: DataTypes.TIME,
     allowNull: true
+  },
+  duration: {
+    type: DataTypes.INTEGER, // Stored in minutes
+    allowNull: true
+  },
+  // --- ENSURE STATUS IS DEFINED ---
+  status: {
+    type: DataTypes.ENUM('PRESENT', 'CHECKED_OUT'),
+    defaultValue: 'PRESENT'
   }
 }, {
   tableName: "attendance",
@@ -36,6 +45,6 @@ const Attendance = sequelize.define("Attendance", {
 });
 
 // Association: An Attendance record belongs to a User
-Attendance.belongsTo(User, { foreignKey: 'member_id', targetKey: 'user_id' });
+// Associations are defined in associations.js
 
 module.exports = Attendance;

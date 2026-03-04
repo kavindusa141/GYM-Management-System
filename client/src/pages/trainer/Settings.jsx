@@ -1,0 +1,297 @@
+import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
+import toast from 'react-hot-toast';
+import { User, Lock, Mail, Phone, Save, ShieldCheck, Edit2, Settings as SettingsIcon, Eye, EyeOff } from 'lucide-react';
+import { validatePasswordStrength } from '../../utils/validation';
+
+export default function TrainerSettings() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('ACCOUNT');
+  const [loading, setLoading] = useState(true);
+
+  // Account State
+  const [accountData, setAccountData] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+
+  // Password State
+  const [passData, setPassData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmError, setConfirmError] = useState('');
+
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+
+  // Refs for focus handling
+  const nameInputRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const phoneInputRef = useRef(null);
+
+  // Fetch Data on Mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await api.get('/settings/account');
+        setAccountData({
+          name: res.data.name || '',
+          email: res.data.email || '',
+          phone: res.data.phone || ''
+        });
+      } catch (err) {
+        setAccountData({
+          name: user?.name || '',
+          email: user?.email || '',
+          phone: user?.phone || ''
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUserData();
+  }, [user]);
+
+  const clearField = (field, ref) => {
+    setAccountData(prev => ({ ...prev, [field]: '' }));
+    setTimeout(() => ref.current?.focus(), 0);
+  };
+
+  const handleAccountUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put('/settings/update-account', accountData);
+      toast.success("Profile updated! Please re-login to reflect changes.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Update failed");
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+
+    if (passwordError || confirmError) {
+      return toast.error("Please fix password requirements first");
+    }
+
+    const validationError = validatePasswordStrength(passData.newPassword);
+    if (validationError) {
+      return toast.error(validationError);
+    }
+
+    if (passData.newPassword !== passData.confirmPassword) {
+      return toast.error("New passwords do not match");
+    }
+    try {
+      await api.put('/settings/change-password', passData);
+      toast.success("Password changed successfully");
+      setPassData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordError('');
+      setConfirmError('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to change password");
+    }
+  };
+
+  const handleNewPasswordChange = (e) => {
+    const val = e.target.value;
+    setPassData({ ...passData, newPassword: val });
+    if (val) {
+      setPasswordError(validatePasswordStrength(val) || '');
+    } else {
+      setPasswordError('');
+    }
+    if (passData.confirmPassword && val !== passData.confirmPassword) {
+      setConfirmError("Passwords do not match");
+    } else {
+      setConfirmError('');
+    }
+  };
+
+  const handleConfirmChange = (e) => {
+    const val = e.target.value;
+    setPassData({ ...passData, confirmPassword: val });
+    if (val && val !== passData.newPassword) {
+      setConfirmError("Passwords do not match");
+    } else {
+      setConfirmError('');
+    }
+  };
+
+  if (loading) return <div className="p-10 text-center text-gray-500">Loading settings...</div>;
+
+  return (
+    <div className="space-y-6 animate-fade-in max-w-4xl mx-auto pb-20">
+
+      <div>
+        <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+          <SettingsIcon className="text-blue-600" size={28} /> Account Settings
+        </h1>
+        <p className="text-gray-500">Manage your personal details and security.</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-4 border-b border-gray-200 pb-1">
+        <button
+          onClick={() => setActiveTab('ACCOUNT')}
+          className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 transition-colors ${activeTab === 'ACCOUNT' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+        >
+          <User className="w-4 h-4" /> Personal Details
+        </button>
+        <button
+          onClick={() => setActiveTab('SECURITY')}
+          className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 transition-colors ${activeTab === 'SECURITY' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+        >
+          <Lock className="w-4 h-4" /> Security
+        </button>
+      </div>
+
+      {/* --- ACCOUNT TAB --- */}
+      {activeTab === 'ACCOUNT' && (
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <form onSubmit={handleAccountUpdate} className="space-y-6 max-w-lg">
+
+            {/* NAME */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label>
+              <div className="relative group">
+                <User className="absolute left-3 top-3 text-gray-400 w-5 h-5 pointer-events-none" />
+                <input
+                  type="text"
+                  ref={nameInputRef}
+                  className="w-full pl-10 pr-10 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                  value={accountData.name}
+                  onChange={(e) => setAccountData({ ...accountData, name: e.target.value })}
+                />
+                <button type="button" onClick={() => clearField('name', nameInputRef)} className="absolute right-3 top-3 text-gray-400 hover:text-blue-600">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* EMAIL */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Email Address</label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-3 text-gray-400 w-5 h-5 pointer-events-none" />
+                <input
+                  type="email"
+                  ref={emailInputRef}
+                  className="w-full pl-10 pr-10 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                  value={accountData.email}
+                  onChange={(e) => setAccountData({ ...accountData, email: e.target.value })}
+                />
+                <button type="button" onClick={() => clearField('email', emailInputRef)} className="absolute right-3 top-3 text-gray-400 hover:text-blue-600">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* PHONE */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
+              <div className="relative group">
+                <Phone className="absolute left-3 top-3 text-gray-400 w-5 h-5 pointer-events-none" />
+                <input
+                  type="text"
+                  ref={phoneInputRef}
+                  className="w-full pl-10 pr-10 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                  value={accountData.phone}
+                  onChange={(e) => setAccountData({ ...accountData, phone: e.target.value })}
+                />
+                <button type="button" onClick={() => clearField('phone', phoneInputRef)} className="absolute right-3 top-3 text-gray-400 hover:text-blue-600">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 flex items-center gap-2 shadow-lg transition-transform active:scale-95">
+              <Save className="w-4 h-4" /> Save Changes
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* --- SECURITY TAB --- */}
+      {activeTab === 'SECURITY' && (
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <form onSubmit={handlePasswordChange} className="space-y-6 max-w-lg">
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Current Password</label>
+              <div className="relative group">
+                <input type={showPasswords.current ? "text" : "password"} required
+                  className="w-full pr-10 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={passData.currentPassword}
+                  onChange={(e) => setPassData({ ...passData, currentPassword: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                  className="absolute right-3 top-3.5 text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-4">
+              <label className="block text-sm font-bold text-gray-700 mb-1">New Password</label>
+              <div className="relative group">
+                <input type={showPasswords.new ? "text" : "password"} required
+                  className={`w-full pr-10 p-3 border rounded-xl outline-none transition-all ${passwordError ? 'border-red-300 focus:ring-2 focus:ring-red-100' : 'focus:ring-2 focus:ring-blue-500'
+                    }`}
+                  value={passData.newPassword}
+                  onChange={handleNewPasswordChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                  className="absolute right-3 top-3.5 text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {passwordError && <p className="text-red-500 text-xs mt-1.5 font-medium">{passwordError}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Confirm New Password</label>
+              <div className="relative group">
+                <input type={showPasswords.confirm ? "text" : "password"} required
+                  className={`w-full pr-10 p-3 border rounded-xl outline-none transition-all ${confirmError ? 'border-red-300 focus:ring-2 focus:ring-red-100' : 'focus:ring-2 focus:ring-blue-500'
+                    }`}
+                  value={passData.confirmPassword}
+                  onChange={handleConfirmChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                  className="absolute right-3 top-3.5 text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {confirmError && <p className="text-red-500 text-xs mt-1.5 font-medium">{confirmError}</p>}
+            </div>
+
+            <button type="submit" className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 flex items-center gap-2 shadow-lg transition-transform active:scale-95">
+              <ShieldCheck className="w-4 h-4" /> Update Password
+            </button>
+          </form>
+        </div>
+      )}
+
+    </div>
+  );
+}

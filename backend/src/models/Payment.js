@@ -24,7 +24,7 @@ const Payment = sequelize.define("Payment", {
     allowNull: false
   },
   payment_method: {
-    type: DataTypes.ENUM('CASH', 'TRANSFER', 'CARD'), 
+    type: DataTypes.ENUM('CASH', 'TRANSFER', 'CARD'),
     defaultValue: 'CASH'
   },
   slip_url: {
@@ -42,6 +42,31 @@ const Payment = sequelize.define("Payment", {
   status: {
     type: DataTypes.ENUM('COMPLETED', 'PENDING', 'VERIFIED', 'FAILED'),
     defaultValue: 'PENDING'
+  },
+  // --- NEW FIELD ---
+  rejection_reason: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  // --- REGISTRATION & PROMOTION FIELDS ---
+  registration_fee: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  discount_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  // --- STRIPE INTEGRATION ---
+  stripe_session_id: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  promo_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
   }
 }, {
   tableName: "payments",

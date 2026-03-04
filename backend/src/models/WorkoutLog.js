@@ -42,8 +42,6 @@ const WorkoutLog = sequelize.define("WorkoutLog", {
 });
 
 // Associations
-WorkoutLog.belongsTo(User, { as: 'Member', foreignKey: 'member_id' });
-WorkoutLog.belongsTo(WorkoutPlan, { as: 'Plan', foreignKey: 'plan_id' });
-User.hasMany(WorkoutLog, { foreignKey: 'member_id' });
+// Associations are defined in associations.js
 
 module.exports = WorkoutLog;

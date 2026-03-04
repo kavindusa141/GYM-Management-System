@@ -2,51 +2,38 @@ const User = require("../models/User");
 const Payment = require("../models/Payment");
 const GymClass = require("../models/GymClass");
 const Attendance = require("../models/Attendance");
-const UserSubscription = require("../models/UserSubscription"); // <--- NEW (3NF)
-const ClassBooking = require("../models/ClassBooking"); // Use if available, else optional
+const UserSubscription = require("../models/UserSubscription");
+const MembershipPlan = require("../models/MembershipPlan");
+const ClassBooking = require("../models/ClassBooking");
+const WorkoutPlan = require("../models/WorkoutPlan");
+const WorkoutLog = require("../models/WorkoutLog");
 const { Op } = require("sequelize");
+const sequelize = require("../config/db");
 
 // ADMIN: Get Live Business Stats
 exports.getDashboardStats = async (req, res) => {
   try {
-    // 1. Total Members (Registered Accounts)
-    const totalMembers = await User.count({ where: { role: "MEMBER" } });
+    // 1. Total Members (Registered Accounts) - Exclude deleted members
+    const totalMembers = await User.count({ where: { role: "MEMBER", is_deleted: false } });
 
-    // 2. Active Members (Paying Customers with Valid Subscriptions)
-    // This is the "Real" count of current customers
-    const activeMembers = await UserSubscription.count({
+    // 2. Total Trainers - Exclude deleted trainers, ensure they are active
+    const totalTrainers = await User.count({ where: { role: "TRAINER", is_deleted: false, status: true } });
+
+    // 3. Total Revenue (All verified/completed payments)
+    const totalRevenue = await Payment.sum("amount", {
       where: {
-        status: 'ACTIVE',
-        end_date: { [Op.gte]: new Date() } // Expiry date must be in future
-      }
-    });
-
-    // 3. Monthly Revenue (Only Verified/Completed Payments this month)
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1); // Set to 1st of current month
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const monthlyRevenue = await Payment.sum("amount", {
-      where: {
-        status: { [Op.or]: ['VERIFIED', 'COMPLETED'] }, // Ignore Pending/Failed
-        transaction_date: { [Op.gte]: startOfMonth }
+        status: { [Op.or]: ['VERIFIED', 'COMPLETED'] }
       }
     }) || 0;
 
-    // 4. Today's Foot Traffic (Attendance)
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const todayAttendance = await Attendance.count({
-      where: {
-        attendance_date: { [Op.gte]: startOfToday }
-      }
-    });
+    // 4. Total Scheduled Classes
+    const totalClasses = await GymClass.count({ where: { status: 'SCHEDULED' } });
 
     res.json({
       totalMembers,
-      activeMembers,
-      monthlyRevenue,
-      todayAttendance
+      totalTrainers,
+      totalRevenue: Math.round(totalRevenue),
+      totalClasses
     });
 
   } catch (err) {
@@ -76,6 +63,7 @@ exports.getAnalytics = async (req, res) => {
       attributes: ['created_at'],
       where: {
         role: 'MEMBER',
+        is_deleted: false,
         created_at: { [Op.gte]: sixMonthsAgo }
       },
       order: [['created_at', 'ASC']]
@@ -84,7 +72,7 @@ exports.getAnalytics = async (req, res) => {
     // Helper: Group Data by Month
     const processMonthly = (data, dateKey, valueKey = null) => {
       const grouped = {};
-      
+
       // Initialize last 6 months with 0 to prevent gaps in chart
       for (let i = 5; i >= 0; i--) {
         const d = new Date();
@@ -96,7 +84,7 @@ exports.getAnalytics = async (req, res) => {
       data.forEach(item => {
         const dateVal = item[dateKey] || item.dataValues[dateKey];
         if (!dateVal) return;
-        
+
         const month = new Date(dateVal).toLocaleString('default', { month: 'short' });
         if (grouped[month] !== undefined) {
           grouped[month] += valueKey ? parseFloat(item[valueKey]) : 1;
@@ -117,44 +105,93 @@ exports.getAnalytics = async (req, res) => {
   }
 };
 
-// MEMBER: Personal Dashboard Stats
+
+
+/* ================================
+   MEMBER: Personal Dashboard Stats
+================================ */
 exports.getMemberStats = async (req, res) => {
   try {
-    const memberId = req.user.id;
+    // Get user ID from token/session
+    const memberId = req.user.user_id || req.user.id;
 
-    // 1. Attendance Count
-    const attendanceCount = await Attendance.count({ where: { user_id: memberId } });
-
-    // 2. Subscription Status
-    const subscription = await UserSubscription.findOne({
-      where: { user_id: memberId, status: 'ACTIVE' },
-      order: [['end_date', 'DESC']]
+    // 1️⃣ Attendance Count
+    const attendanceCount = await Attendance.count({
+      where: { member_id: memberId }
     });
 
-    // 3. Upcoming Bookings (If ClassBooking exists)
-    let upcomingClasses = 0;
-    try {
-        upcomingClasses = await ClassBooking.count({
-            where: { 
-                user_id: memberId,
-                status: 'CONFIRMED'
-            },
-            include: [{
-                model: GymClass,
-                where: { schedule_time: { [Op.gte]: new Date() } }
-            }]
-        });
-    } catch (e) {
-        // Fallback if ClassBooking table isn't fully set up yet
-        upcomingClasses = 0;
+    // --- NEW: Calculate Average Duration ---
+    // We only average sessions where 'duration' is not null (meaning they checked out)
+    const durationStats = await Attendance.findAll({
+      where: {
+        member_id: memberId,
+        duration: { [Op.ne]: null } // Only completed sessions
+      },
+      attributes: [
+        [sequelize.fn('AVG', sequelize.col('duration')), 'avgDuration']
+      ],
+      raw: true
+    });
+
+    const avgMinutes = durationStats[0].avgDuration
+      ? Math.round(parseFloat(durationStats[0].avgDuration))
+      : 0;
+
+    // 2️⃣ Today's date for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 3️⃣ Fetch only the current ACTIVE subscription
+    const activeSubscription = await UserSubscription.findOne({
+      where: {
+        user_id: memberId,
+        status: "ACTIVE",
+        end_date: { [Op.gte]: today } // ensure still valid
+      },
+      include: [{ model: MembershipPlan, attributes: ["name"] }],
+      order: [["end_date", "DESC"]]
+    });
+
+    // 4️⃣ Auto-expire subscriptions if needed
+    if (activeSubscription) {
+      const endDate = new Date(activeSubscription.end_date);
+      endDate.setHours(0, 0, 0, 0);
+      if (endDate < today && activeSubscription.status === "ACTIVE") {
+        await activeSubscription.update({ status: "EXPIRED" });
+      }
     }
 
+    // 5️⃣ Upcoming classes count
+    let upcomingClasses = 0;
+    try {
+      upcomingClasses = await ClassBooking.count({
+        where: { user_id: memberId, status: "CONFIRMED" }
+      });
+    } catch (e) {
+      upcomingClasses = 0;
+    }
+
+    // 6️⃣ Days left calculation
+    let daysLeft = 0;
+    if (activeSubscription) {
+      const endDate = new Date(activeSubscription.end_date);
+      endDate.setHours(0, 0, 0, 0);
+      const diffTime = endDate.getTime() - today.getTime();
+      daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    // 7️⃣ Return dashboard data
     res.json({
       attendanceCount,
-      upcomingClasses,
-      active: !!subscription, // True if subscription exists
-      planName: subscription ? "Active Member" : "No Active Plan",
-      expiryDate: subscription ? subscription.end_date : null
+      avgMinutes,
+      active: !!activeSubscription,
+      planName: activeSubscription
+        ? activeSubscription.MembershipPlan.name
+        : "No Active Plan",
+      startDate: activeSubscription ? activeSubscription.start_date : null,
+      expiryDate: activeSubscription ? activeSubscription.end_date : null,
+      daysLeft,
+      upcomingClasses
     });
 
   } catch (err) {
@@ -164,45 +201,130 @@ exports.getMemberStats = async (req, res) => {
 };
 
 
-// MEMBER: Personal Dashboard Stats
-exports.getMemberStats = async (req, res) => {
+
+// NEW: Get Trainer Dashboard Stats
+exports.getTrainerDashboardStats = async (req, res) => {
   try {
-    const memberId = req.user.id;
+    const trainerId = req.user.id;
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-    // 1. Attendance Count
-    const attendanceCount = await Attendance.count({ where: { user_id: memberId } });
-
-    // 2. Subscription Status (Fetch the latest ACTIVE one)
-    const subscription = await UserSubscription.findOne({
-      where: { 
-        user_id: memberId, 
-        status: 'ACTIVE',
-        end_date: { [Op.gte]: new Date() } // Must not be expired
-      },
-      include: [{ model: MembershipPlan, attributes: ['name'] }], // <--- Get Plan Name
-      order: [['end_date', 'DESC']]
+    // 1. Count Active Plans (Clients)
+    const activePlans = await WorkoutPlan.count({
+      where: { trainer_id: trainerId, status: 'ACTIVE' }
     });
 
-    // 3. Calculate Days Remaining
-    let daysLeft = 0;
-    if (subscription) {
-      const today = new Date();
-      const end = new Date(subscription.end_date);
-      const diffTime = Math.abs(end - today);
-      daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-    }
+    // 2. Count Today's Classes
+    const todayClassesCount = await GymClass.count({
+      where: {
+        trainer_id: trainerId,
+        status: 'SCHEDULED'
+        // Note: In a real DB, you'd filter by date here if your GymClass has a specific date. 
+        // Since GymClass uses 'day_of_week', we filter by Day Name:
+      }
+      // logic for day checking is complex in SQL generic, keeping simple count for now or filtering in JS
+    });
+
+    // 3. Get Today's Schedule (Actual Data)
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const todayName = days[new Date().getDay()];
+
+    const todaysSchedule = await GymClass.findAll({
+      where: {
+        trainer_id: trainerId,
+        day_of_week: todayName
+      },
+      order: [['start_time', 'ASC']]
+    });
+
+    // 4. Recent Client Logs (Last 5 logs from plans assigned by this trainer)
+    // First get plan IDs created by this trainer
+    const myPlanIds = (await WorkoutPlan.findAll({
+      where: { trainer_id: trainerId },
+      attributes: ['plan_id']
+    })).map(p => p.plan_id);
+
+    const recentLogs = await WorkoutLog.findAll({
+      where: { plan_id: { [Op.in]: myPlanIds } },
+      include: [
+        { model: User, as: 'Member', attributes: ['name'] },
+        { model: WorkoutPlan, as: 'Plan', attributes: ['name'] }
+      ],
+      order: [['created_at', 'DESC']],
+      limit: 5
+    });
 
     res.json({
-      attendanceCount,
-      active: !!subscription, 
-      planName: subscription ? subscription.MembershipPlan.name : "No Active Plan",
-      expiryDate: subscription ? subscription.end_date : null,
-      daysLeft: daysLeft,
-      startDate: subscription ? subscription.start_date : null
+      activeClients: activePlans,
+      todayClassCount: todaysSchedule.length, // More accurate based on day name
+      todaysSchedule,
+      recentLogs
     });
 
   } catch (err) {
-    console.error("Member Stats Error:", err);
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// STAFF: Get Front Desk Stats
+exports.getStaffDashboardStats = async (req, res) => {
+  try {
+    // 1. Get Today's Date string (YYYY-MM-DD) for DATEONLY column
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 2. Setup Date Ranges for datetime columns (like Payment.transaction_date)
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // 3. Total Active Members
+    const totalMembers = await User.count({
+      where: { role: 'MEMBER', is_deleted: false }
+    });
+
+    // 4. Today's Check-ins 
+    // FIXED: Use 'attendance_date' (DATEONLY) matches string 'YYYY-MM-DD'
+    const todayAttendance = await Attendance.count({
+      where: {
+        attendance_date: todayStr
+      }
+    });
+
+    // 5. Today's Revenue (POS + Online)
+    // Payments use 'transaction_date' (DATETIME), so [Op.between] works here
+    const todayRevenue = await Payment.sum('amount', {
+      where: {
+        status: { [Op.or]: ['VERIFIED', 'COMPLETED'] },
+        transaction_date: { [Op.between]: [startOfDay, endOfDay] }
+      }
+    }) || 0;
+
+    // 6. Recent Check-ins
+    // FIXED: Order by 'attendance_date' then 'check_in' (TIME)
+    const recentCheckins = await Attendance.findAll({
+      limit: 5,
+      order: [
+        ['attendance_date', 'DESC'],
+        ['check_in', 'DESC']
+      ],
+      include: [{
+        model: User,
+        attributes: ['name', 'member_code', 'email']
+      }]
+    });
+
+    res.json({
+      totalMembers,
+      todayAttendance,
+      todayRevenue: Math.round(todayRevenue),
+      recentCheckins
+    });
+
+  } catch (err) {
+    console.error("Staff Stats Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
