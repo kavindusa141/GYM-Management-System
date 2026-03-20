@@ -200,7 +200,7 @@ export default function LandingPage() {
             <motion.div variants={fadeUp} className="pt-12 flex flex-wrap items-center justify-start gap-10 sm:gap-16 border-t border-white/10">
               <AnimatedCounter value={24} label="Access" suffix="/7" />
               <AnimatedCounter value={50} label="Premium Machines" suffix="+" />
-              <AnimatedCounter value={15} label="Elite Trainers" suffix="+" />
+              <AnimatedCounter value={50} label="Members" suffix="+" />
             </motion.div>
           </motion.div>
         </div>
@@ -233,18 +233,18 @@ export default function LandingPage() {
             <FeatureCard
               icon={<Zap size={32} />}
               title="Next-Gen Equipment"
-              desc="Bio-mechanically perfect machines synced with our app to track your progressive overload in real-time."
+              desc="You can use modern equipment."
             />
             <FeatureCard
               icon={<ShieldCheck size={32} />}
               title="Elite Periodization"
-              desc="Forget generic routines. Our AI-assisted coaching staff builds true micro and macro cycles for your goals."
+              desc="Forget generic routines. Our premium coaching staff builds true micro and macro cycles for your goals."
               highlight
             />
             <FeatureCard
               icon={<Activity size={32} />}
-              title="Recovery Science"
-              desc="Infrared saunas, cold plunges, and hyperbaric oxygen therapy to accelerate your muscle recovery."
+              title="E-Management"
+              desc="Intuitive platform for seamless gym management."
             />
           </motion.div>
         </div>

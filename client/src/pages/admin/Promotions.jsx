@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Calendar, Tag, Percent, DollarSign, Save } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, Tag, Percent, Save } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -200,7 +200,7 @@ export default function Promotions() {
                                             </td>
                                             <td className="p-4">
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-sm">
-                                                    {promo.discountType === 'PERCENTAGE' ? <Percent size={14} /> : <DollarSign size={14} />}
+                                                    {promo.discountType === 'PERCENTAGE' ? <Percent size={14} /> : <span className="text-[11px] font-black mr-0.5 tracking-wide">RS</span>}
                                                     {promo.discountValue}{promo.discountType === 'PERCENTAGE' ? '%' : ' OFF'}
                                                 </span>
                                             </td>
@@ -265,7 +265,7 @@ export default function Promotions() {
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Discount Type</label>
                                 <select className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={formData.discountType} onChange={e => setFormData({ ...formData, discountType: e.target.value })}>
                                     <option value="PERCENTAGE">Percentage (%)</option>
-                                    <option value="FIXED_AMOUNT">Fixed Amount ($)</option>
+                                    <option value="FIXED_AMOUNT">Fixed Amount (RS)</option>
                                 </select>
                             </div>
                             <div>
