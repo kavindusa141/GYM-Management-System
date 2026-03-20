@@ -3,6 +3,25 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { Calendar, Clock, Users, XCircle, AlertCircle, CheckCircle, RefreshCw, X, Eye } from 'lucide-react';
 
+const formatTimeLeft = (hours, short = false) => {
+  if (hours === undefined || hours === null) return '';
+  const isNegative = hours < 0;
+  const absHours = Math.abs(Math.round(hours));
+  const d = Math.floor(absHours / 24);
+  const h = absHours % 24;
+  
+  let result = '';
+  if (short) {
+    if (d > 0) result += `${d}d `;
+    result += `${h}h`;
+  } else {
+    if (d > 0) result += `${d} day${d !== 1 ? 's' : ''} `;
+    if (h > 0 || d === 0) result += `${h} hour${h !== 1 ? 's' : ''}`;
+  }
+  
+  return (isNegative ? `-${result.trim()}` : result.trim()) || (short ? '0h' : '0 hours');
+};
+
 export default function MyClasses() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,11 +90,11 @@ export default function MyClasses() {
       if (response.data?.timeInfo) {
         const { hoursUntilStart } = response.data.timeInfo;
         if (newStatus === 'CANCELLED' && hoursUntilStart < 12) {
-          toast.error(`Cannot cancel: Class starts in ${Math.round(hoursUntilStart)} hours. Must cancel 12 hours before.`);
+          toast.error(`Cannot cancel: Class starts in ${formatTimeLeft(hoursUntilStart)}. Must cancel 12 hours before.`);
           return;
         }
         if (newStatus === 'SCHEDULED' && hoursUntilStart < 12) {
-          toast.error(`Cannot restore: Class starts in ${Math.round(hoursUntilStart)} hours. Must restore 12 hours before.`);
+          toast.error(`Cannot restore: Class starts in ${formatTimeLeft(hoursUntilStart)}. Must restore 12 hours before.`);
           return;
         }
       }
@@ -260,7 +279,7 @@ export default function MyClasses() {
                 {cls.status === 'SCHEDULED' && cls.hours_until_start !== undefined && (
                   <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs text-blue-700">
-                      <span className="font-semibold">Class starts in:</span> {cls.hours_until_start} hours
+                      <span className="font-semibold">Class starts in:</span> {formatTimeLeft(cls.hours_until_start)}
                     </p>
                     {cls.hours_until_start < 12 && (
                       <p className="text-xs text-red-600 mt-1">
@@ -305,9 +324,9 @@ export default function MyClasses() {
                         <button
                           disabled
                           className="w-full py-2 bg-gray-50 border border-gray-200 text-gray-400 rounded-lg text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2"
-                          title={`Cannot cancel: Class starts in ${cls.hours_until_start} hours. Must cancel 12 hours before.`}
+                          title={`Cannot cancel: Class starts in ${formatTimeLeft(cls.hours_until_start)}. Must cancel 12 hours before.`}
                         >
-                          <XCircle size={16} /> Cancel Class (in {cls.hours_until_start}h)
+                          <XCircle size={16} /> Cancel Class (in {formatTimeLeft(cls.hours_until_start, true)})
                         </button>
                       )}
                     </>
@@ -326,9 +345,9 @@ export default function MyClasses() {
                         <button
                           disabled
                           className="w-full py-2 bg-gray-50 border border-gray-200 text-gray-400 rounded-lg text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2"
-                          title={`Cannot restore: Class starts in ${cls.hours_until_start} hours. Must restore 12 hours before.`}
+                          title={`Cannot restore: Class starts in ${formatTimeLeft(cls.hours_until_start)}. Must restore 12 hours before.`}
                         >
-                          <RefreshCw size={16} /> Restore Class (in {cls.hours_until_start}h)
+                          <RefreshCw size={16} /> Restore Class (in {formatTimeLeft(cls.hours_until_start, true)})
                         </button>
                       )}
                     </>

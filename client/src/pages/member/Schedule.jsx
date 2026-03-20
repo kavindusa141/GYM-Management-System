@@ -12,6 +12,25 @@ import {
   Calendar as CalendarIcon, List, Clock, User, CheckCircle, XCircle, AlertCircle, Info, Filter
 } from 'lucide-react';
 
+const formatTimeLeft = (hours, short = false) => {
+  if (hours === undefined || hours === null) return '';
+  const isNegative = hours < 0;
+  const absHours = Math.abs(Math.round(hours));
+  const d = Math.floor(absHours / 24);
+  const h = absHours % 24;
+  
+  let result = '';
+  if (short) {
+    if (d > 0) result += `${d}d `;
+    result += `${h}h`;
+  } else {
+    if (d > 0) result += `${d} day${d !== 1 ? 's' : ''} `;
+    if (h > 0 || d === 0) result += `${h} hour${h !== 1 ? 's' : ''}`;
+  }
+  
+  return (isNegative ? `-${result.trim()}` : result.trim()) || (short ? '0h' : '0 hours');
+};
+
 // --- Calendar Setup ---
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({
@@ -245,8 +264,17 @@ export default function Schedule() {
                             </div>
                           </div>
 
+                          {/* Starts In Indicator */}
+                          {!isCancelled && cls.hours_until_start !== undefined && cls.hours_until_start > 0 && (
+                            <div className="bg-blue-50/50 border border-blue-100 p-2 rounded-lg mt-2">
+                              <p className="text-xs text-blue-700">
+                                <span className="font-bold">Starts in:</span> {formatTimeLeft(cls.hours_until_start)}
+                              </p>
+                            </div>
+                          )}
+
                           {/* Capacity Bar */}
-                          <div className="mt-auto">
+                          <div className="mt-auto pt-2">
                             <div className="flex justify-between text-xs font-semibold mb-1.5">
                               <span className={isFull ? 'text-orange-600' : 'text-gray-500'}>
                                 {isCancelled ? 'Unavailable' : isFull ? 'Class Full' : 'Availability'}

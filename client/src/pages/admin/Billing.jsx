@@ -3,7 +3,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import {
   FileText, Receipt, Upload, CheckCircle, Calendar,
-  Search, ChevronDown, Filter, X, XCircle, AlertCircle
+  Search, ChevronDown, Filter, X, XCircle, AlertCircle, Banknote
 } from 'lucide-react';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -326,7 +326,7 @@ export default function Billing() {
 
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-gray-500" />
+                  <Banknote className="w-5 h-5 text-gray-500" />
                   <h3 className="font-bold text-gray-900">History</h3>
 
                   {/* Revenue Badge */}

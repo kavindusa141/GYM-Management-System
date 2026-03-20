@@ -8,6 +8,25 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import TrainerAvailabilityCalendar from '../../components/TrainerAvailabilityCalendar';
 
+const formatTimeLeft = (hours, short = false) => {
+  if (hours === undefined || hours === null) return '';
+  const isNegative = hours < 0;
+  const absHours = Math.abs(Math.round(hours));
+  const d = Math.floor(absHours / 24);
+  const h = absHours % 24;
+  
+  let result = '';
+  if (short) {
+    if (d > 0) result += `${d}d `;
+    result += `${h}h`;
+  } else {
+    if (d > 0) result += `${d} day${d !== 1 ? 's' : ''} `;
+    if (h > 0 || d === 0) result += `${h} hour${h !== 1 ? 's' : ''}`;
+  }
+  
+  return (isNegative ? `-${result.trim()}` : result.trim()) || (short ? '0h' : '0 hours');
+};
+
 export default function ManageClasses() {
   const navigate = useNavigate();
   const { user } = useAuth(); // Get current user for permission checks
@@ -296,7 +315,16 @@ export default function ManageClasses() {
                   </div>
                 </div>
 
-                <div className="h-px bg-gray-100 w-full"></div>
+                {/* Starts In Indicator */}
+                {!isCancelled && !isOverdue && cls.hours_until_start !== undefined && cls.hours_until_start > 0 && (
+                  <div className="bg-blue-50/50 border border-blue-100 p-2 rounded-lg -mt-1 -mb-1">
+                    <p className="text-xs text-blue-700">
+                      <span className="font-bold">Starts in:</span> {formatTimeLeft(cls.hours_until_start)}
+                    </p>
+                  </div>
+                )}
+
+                <div className="h-px bg-gray-100 w-full mt-2"></div>
 
                 {/* Booking Progress Bar */}
                 <div className="cursor-pointer" onClick={() => handleViewBookings(cls)} title="Click to view bookings">
