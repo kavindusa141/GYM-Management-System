@@ -347,7 +347,18 @@ export default function ManageClasses() {
                       {cls.status === 'SCHEDULED' && (
                         <>
                           <button onClick={() => handleStatusUpdate(cls.class_id, 'COMPLETED')} className="col-span-1 p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 flex justify-center" title="Mark Completed"><CheckCircle size={18} /></button>
-                          <button onClick={() => handleStatusUpdate(cls.class_id, 'CANCELLED')} className="col-span-1 p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 flex justify-center" title="Cancel Class"><Ban size={18} /></button>
+                          <button
+                            onClick={() => handleStatusUpdate(cls.class_id, 'CANCELLED')}
+                            disabled={!cls.can_cancel}
+                            className={`col-span-1 p-2 rounded-lg flex justify-center ${
+                              cls.can_cancel 
+                                ? 'bg-orange-50 text-orange-600 hover:bg-orange-100' 
+                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            }`}
+                            title={!cls.can_cancel ? "Cannot cancel (Requires >= 12h notice). Please Mark Complete instead." : "Cancel Class"}
+                          >
+                            <Ban size={18} />
+                          </button>
                         </>
                       )}
                       {cls.status === 'CANCELLED' && (

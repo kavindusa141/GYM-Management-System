@@ -181,7 +181,7 @@ exports.getAllClasses = async (req, res) => {
           booking_count: bookingCount,
           is_full: bookingCount >= cls.capacity,
           hours_until_start: Math.round(hoursUntilStart),
-          can_cancel_12h: hoursUntilStart >= 12 && !hasStarted && cls.status === 'SCHEDULED',
+          can_cancel: hoursUntilStart >= 12 && !hasStarted && cls.status === 'SCHEDULED',
           can_restore_12h: hoursUntilStart >= 12 && !hasStarted && cls.status === 'CANCELLED',
           can_mark_complete: hasEnded && cls.status === 'SCHEDULED',
           class_has_started: hasStarted,
@@ -293,26 +293,27 @@ exports.updateClassStatus = async (req, res) => {
     }
 
     // ============================================================
+    // GLOBAL CHECK: CANCELLATION RULES (Applies to Admin, Staff, Trainer)
+    // ============================================================
+    if (status === 'CANCELLED') {
+      const bookingCount = await ClassBooking.count({
+        where: { class_id: id, status: 'CONFIRMED' }
+      });
+
+      if (timeUntilStart < 12) {
+        return res.status(400).json({
+          message: `Cannot cancel: Class starts in ${Math.round(timeUntilStart)} hours. Must cancel at least 12 hours before class time.`
+        });
+      }
+    }
+
+    // ============================================================
     // PERMISSION CHECKS (Trainer Specific)
     // ============================================================
     if (req.user.role === 'TRAINER') {
       // Trainers can only modify their own classes
       if (cls.trainer_id !== req.user.id) {
         return res.status(403).json({ message: "You can only manage your own classes." });
-      }
-
-      // CANCEL - Only allowed if at least 12 hours before start time
-      if (status === 'CANCELLED') {
-        if (classStart <= now) {
-          return res.status(400).json({
-            message: "Cannot cancel: Class has already started."
-          });
-        }
-        if (timeUntilStart < 12) {
-          return res.status(400).json({
-            message: `Cannot cancel: Class starts in ${Math.round(timeUntilStart)} hours. Must cancel at least 12 hours before class time.`
-          });
-        }
       }
 
       // RESTORE - Only allowed if at least 12 hours before start time
@@ -486,7 +487,7 @@ exports.getTrainerClasses = async (req, res) => {
           booking_count: bookingCount,
           is_full: bookingCount >= cls.capacity,
           hours_until_start: Math.round(hoursUntilStart),
-          can_cancel_12h: hoursUntilStart >= 12 && !hasStarted && cls.status === 'SCHEDULED',
+          can_cancel: hoursUntilStart >= 12 && !hasStarted && cls.status === 'SCHEDULED',
           can_restore_12h: hoursUntilStart >= 12 && !hasStarted && cls.status === 'CANCELLED',
           can_mark_complete: hasEnded && cls.status === 'SCHEDULED',
           class_has_started: hasStarted,

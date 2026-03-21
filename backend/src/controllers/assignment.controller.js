@@ -132,9 +132,11 @@ exports.getTrainersWithCounts = async (req, res) => {
                 [Sequelize.literal(`(
                     SELECT COUNT(*)
                     FROM member_assignments AS ma
+                    INNER JOIN users AS u ON ma.member_id = u.user_id
                     WHERE
                         ma.trainer_id = User.user_id
                         AND ma.status = 'ACTIVE'
+                        AND u.is_deleted = 0
                 )`), 'active_members_count']
             ]
         });

@@ -164,9 +164,30 @@ exports.getMemberStats = async (req, res) => {
     // 5️⃣ Upcoming classes count
     let upcomingClasses = 0;
     try {
-      upcomingClasses = await ClassBooking.count({
-        where: { user_id: memberId, status: "CONFIRMED" }
+      const bookings = await ClassBooking.findAll({
+        where: { user_id: memberId, status: "CONFIRMED" },
+        include: [{ 
+          model: GymClass, 
+          required: true, 
+          where: { status: { [Op.ne]: 'COMPLETED' } } 
+        }]
       });
+
+      const now = new Date();
+      upcomingClasses = bookings.filter(b => {
+        if (!b.GymClass) return false;
+        
+        const dateStr = typeof b.GymClass.class_date === 'string'
+          ? b.GymClass.class_date
+          : new Date(b.GymClass.class_date).toISOString().split('T')[0];
+          
+        const endTimeStr = typeof b.GymClass.end_time === 'string'
+          ? b.GymClass.end_time
+          : b.GymClass.end_time?.toString?.() || '00:00:00';
+          
+        const classEnd = new Date(`${dateStr}T${endTimeStr}`);
+        return classEnd >= now;
+      }).length;
     } catch (e) {
       upcomingClasses = 0;
     }
@@ -212,7 +233,12 @@ exports.getTrainerDashboardStats = async (req, res) => {
 
     // 1. Count Active Plans (Clients)
     const activePlans = await WorkoutPlan.count({
-      where: { trainer_id: trainerId, status: 'ACTIVE' }
+      where: { trainer_id: trainerId, status: 'ACTIVE' },
+      include: [{
+        model: User,
+        as: 'Member',
+        where: { is_deleted: false }
+      }]
     });
 
     // 2. Count Today's Classes

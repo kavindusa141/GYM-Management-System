@@ -120,6 +120,12 @@ export default function Schedule() {
     }
   };
 
+  const activeUpcomingCount = myBookings.filter(booking => {
+    const isPastClass = new Date(booking.class_end) < new Date();
+    const isMarkedCompleted = booking.GymClass?.status === 'COMPLETED';
+    return !isPastClass && !isMarkedCompleted;
+  }).length;
+
   return (
     <div className="space-y-6 animate-fade-in h-[calc(100vh-100px)] flex flex-col">
 
@@ -170,10 +176,10 @@ export default function Schedule() {
             }`}
         >
           <CheckCircle size={16} /> My Reservations
-          {(myBookings.filter(b => b.GymClass?.status !== 'COMPLETED').length) > 0 && (
+          {activeUpcomingCount > 0 && (
             <span className={`text-xs py-0.5 px-2 rounded-full shadow-sm ml-1 ${activeTab === 'MY_BOOKINGS' ? 'bg-white text-blue-600' : 'bg-blue-100 text-blue-600'
               }`}>
-              {myBookings.filter(b => b.GymClass?.status !== 'COMPLETED').length}
+              {activeUpcomingCount}
             </span>
           )}
         </button>
@@ -372,7 +378,7 @@ export default function Schedule() {
         {/* TAB 2: MY BOOKINGS LIST */}
         {activeTab === 'MY_BOOKINGS' && (
           <div className="h-full overflow-y-auto bg-white p-4">
-            {myBookings.filter(b => b.GymClass?.status !== 'COMPLETED').length === 0 ? (
+            {myBookings.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-500">
                 <CalendarIcon className="w-12 h-12 text-gray-200 mb-4" />
                 <p>You have no upcoming reservations.</p>
@@ -382,8 +388,11 @@ export default function Schedule() {
               </div>
             ) : (
               <div className="space-y-4 max-w-4xl mx-auto">
-                {myBookings.filter(b => b.GymClass?.status !== 'COMPLETED').map((booking) => {
+                {myBookings.map((booking) => {
                   const canCancel = booking.hours_until_start >= 12;
+                  const isPastClass = new Date(booking.class_end) < new Date();
+                  const isMarkedCompleted = booking.GymClass?.status === 'COMPLETED';
+                  const showNotAttended = isPastClass || isMarkedCompleted;
 
                   return (
                     <div key={booking.booking_id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
@@ -413,26 +422,31 @@ export default function Schedule() {
                       </div>
 
                       <div className="flex items-center gap-3 pl-20 md:pl-0">
-                        {/* Cancel Button */}
-                        <div className="relative group">
-                          <button
-                            onClick={() => handleCancel(booking.booking_id)}
-                            disabled={!canCancel}
-                            className={`px-4 py-2 text-sm font-bold rounded-lg border transition-all flex items-center gap-2 ${canCancel
-                                ? 'text-red-600 hover:bg-red-50 border-transparent hover:border-red-100'
-                                : 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed'
-                              }`}
-                          >
-                            <XCircle size={16} /> Cancel Booking
-                          </button>
+                        {showNotAttended ? (
+                          <span className="px-4 py-2 text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                            <XCircle size={16} /> Not Attended
+                          </span>
+                        ) : (
+                          <div className="relative group">
+                            <button
+                              onClick={() => handleCancel(booking.booking_id)}
+                              disabled={!canCancel}
+                              className={`px-4 py-2 text-sm font-bold rounded-lg border transition-all flex items-center gap-2 ${canCancel
+                                  ? 'text-red-600 hover:bg-red-50 border-transparent hover:border-red-100'
+                                  : 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed'
+                                }`}
+                            >
+                              <XCircle size={16} /> Cancel Booking
+                            </button>
 
-                          {/* Tooltip */}
-                          {!canCancel && (
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 bg-gray-800 text-white text-xs p-2 rounded shadow-lg hidden group-hover:block z-50 text-center">
-                              Cannot cancel less than 12h before start.
-                            </div>
-                          )}
-                        </div>
+                            {/* Tooltip */}
+                            {!canCancel && (
+                              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 bg-gray-800 text-white text-xs p-2 rounded shadow-lg hidden group-hover:block z-50 text-center">
+                                Cannot cancel less than 12h before start.
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

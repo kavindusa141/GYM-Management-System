@@ -313,7 +313,7 @@ export default function MyClasses() {
                       )}
 
                       {/* Show cancel button with 12-hour validation */}
-                      {cls.can_cancel_12h ? (
+                      {cls.can_cancel ? (
                         <button
                           onClick={() => handleStatusUpdate(cls.class_id, 'CANCELLED', cls)}
                           className="w-full py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
@@ -324,7 +324,7 @@ export default function MyClasses() {
                         <button
                           disabled
                           className="w-full py-2 bg-gray-50 border border-gray-200 text-gray-400 rounded-lg text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2"
-                          title={`Cannot cancel: Class starts in ${formatTimeLeft(cls.hours_until_start)}. Must cancel 12 hours before.`}
+                          title={`Cannot cancel: Requires >= 12h notice.`}
                         >
                           <XCircle size={16} /> Cancel Class (in {formatTimeLeft(cls.hours_until_start, true)})
                         </button>
