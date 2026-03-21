@@ -26,7 +26,7 @@ exports.updateProfile = async (req, res) => {
     const userId = req.user.id;
     const { 
       date_of_birth, gender, weight, height, 
-      fitness_goal, activity_level, emergency_contact, medical_conditions 
+      fitness_goal, emergency_contact, medical_conditions 
     } = req.body;
 
     // 1. Calculate BMI
@@ -55,7 +55,6 @@ exports.updateProfile = async (req, res) => {
       weight,
       height,
       fitness_goal,
-      activity_level,
       emergency_contact,
       medical_conditions,
       bmi
