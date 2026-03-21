@@ -55,6 +55,16 @@ export default function ManageStaff() {
   // Handle Create
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+        return toast.error("Please enter a valid email address");
+    }
+    
+    if (formData.phone && formData.phone.length !== 10) {
+        return toast.error("Phone number must be exactly 10 digits");
+    }
+
     try {
       await api.post('/admin/employees', formData);
       toast.success(`${formData.role} added successfully!`);
@@ -256,9 +266,10 @@ export default function ManageStaff() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input type="text" required 
+                  <input type="tel" required maxLength="10"
                     className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-                    value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="0771234567"
+                    value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10)})}
                   />
                 </div>
 

@@ -60,7 +60,13 @@ export default function Register() {
 
   // Handle Input Changes with Live Validation
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    // Strict phone number stripping
+    if (name === 'phone') {
+      value = value.replace(/\D/g, '').slice(0, 10);
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
 
     // Validate immediately if field was already touched
@@ -254,6 +260,7 @@ export default function Register() {
                       <Phone className={`absolute left-3 top-3.5 h-5 w-5 ${errors.phone ? 'text-red-500' : 'text-gray-500'}`} />
                       <input
                         type="tel" name="phone"
+                        maxLength="10"
                         placeholder="07XXXXXXXX"
                         className={getInputClass('phone')}
                         value={formData.phone}

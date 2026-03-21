@@ -14,7 +14,6 @@ export default function MemberProfileSetup() {
     weight: '', 
     height: '',
     fitness_goal: 'General Health', 
-    activity_level: 'Moderately Active',
     emergency_contact: '',
     medical_conditions: ''
   });
@@ -41,7 +40,13 @@ export default function MemberProfileSetup() {
     
     // Basic Frontend Validations
     if (formData.weight <= 0 || formData.height <= 0) {
+      setLoading(false);
       return toast.error("Weight and Height must be positive numbers");
+    }
+    
+    if (formData.emergency_contact && formData.emergency_contact.length !== 10) {
+      setLoading(false);
+      return toast.error("Emergency contact phone number must be exactly 10 digits");
     }
 
     try {
@@ -55,7 +60,13 @@ export default function MemberProfileSetup() {
     }
   };
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    let { name, value } = e.target;
+    if (name === 'emergency_contact') {
+      value = value.replace(/\D/g, '').slice(0, 10);
+    }
+    setFormData({ ...formData, [name]: value });
+  };
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
@@ -109,8 +120,8 @@ export default function MemberProfileSetup() {
           <div className="relative">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Emergency Contact</label>
             <Phone className="absolute right-3 top-9 w-5 h-5 text-gray-400" />
-            <input type="text" name="emergency_contact" required value={formData.emergency_contact} onChange={handleChange}
-              className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50" placeholder="Mom: 077..." />
+            <input type="tel" maxLength="10" name="emergency_contact" required value={formData.emergency_contact} onChange={handleChange}
+              className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50" placeholder="0771234567" />
           </div>
 
           {/* Fitness Goal */}
@@ -121,18 +132,6 @@ export default function MemberProfileSetup() {
               {['Weight Loss', 'Muscle Gain', 'Endurance', 'Flexibility', 'General Health'].map(g => (
                 <option key={g} value={g}>{g}</option>
               ))}
-            </select>
-          </div>
-
-          {/* Activity Level */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Activity Level</label>
-            <select name="activity_level" value={formData.activity_level} onChange={handleChange}
-              className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 bg-white">
-              <option>Sedentary (Little or no exercise)</option>
-              <option>Lightly Active (1-3 days/week)</option>
-              <option>Moderately Active (3-5 days/week)</option>
-              <option>Very Active (6-7 days/week)</option>
             </select>
           </div>
 
