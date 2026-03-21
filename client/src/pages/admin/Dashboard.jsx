@@ -76,7 +76,14 @@ export default function AdminDashboard() {
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+        <StatCard
+          title="Live Members"
+          value={stats.liveMembersCount || 0}
+          icon={<Activity className="w-5 h-5" />}
+          trend="Currently inside"
+          color="emerald"
+        />
         <StatCard
           title="Total Members"
           value={stats.totalMembers}
@@ -324,6 +331,7 @@ function StatCard({ title, value, icon, trend, color }) {
     green: "bg-green-50 text-green-600",
     purple: "bg-purple-50 text-purple-600",
     orange: "bg-orange-50 text-orange-600",
+    emerald: "bg-emerald-50 text-emerald-600",
   };
 
   return (

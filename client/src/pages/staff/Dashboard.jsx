@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { 
-  Users, QrCode, CreditCard, UserPlus, Clock, ArrowRight, CheckCircle, Banknote 
+  Users, QrCode, CreditCard, UserPlus, Clock, ArrowRight, CheckCircle, Banknote, Activity 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LiveClock from '../../components/Shared/LiveClock';
@@ -62,8 +62,21 @@ export default function StaffDashboard() {
       </div>
 
       {/* QUICK STATS CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32">
+          <div className="flex justify-between items-start">
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+              <Activity size={20} />
+            </div>
+            <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Live</span>
+          </div>
+          <div>
+            <span className="text-3xl font-black text-gray-900">{stats.liveMembersCount || 0}</span>
+            <p className="text-xs font-bold text-gray-500 uppercase mt-1">Inside Gym</p>
+          </div>
+        </div>
+
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
             <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
@@ -171,7 +184,7 @@ export default function StaffDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-bold text-gray-900">
-                      {new Date(log.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      {new Date(`${log.attendance_date}T${log.check_in}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>
                     <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
                       Entry

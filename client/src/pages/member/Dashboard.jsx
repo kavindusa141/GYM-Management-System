@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import LiveClock from '../../components/Shared/LiveClock';
-import { Calendar, User, Activity, AlertCircle, CheckCircle, Zap, Timer, ArrowRight, CreditCard, ChevronRight } from 'lucide-react';
+import { Calendar, User, Users, Activity, AlertCircle, CheckCircle, Zap, Timer, ArrowRight, CreditCard, ChevronRight } from 'lucide-react';
 
 // Helper to format minutes into "1h 20m" or "45m"
 const formatDuration = (mins) => {
@@ -88,10 +88,10 @@ export default function MemberDashboard() {
       </header>
 
       {/* --- Main Grid --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         
         {/* 1. HERO CARD: Membership Status (Spans Full Width on lg) */}
-        <div className={`relative overflow-hidden p-8 rounded-3xl shadow-sm border col-span-1 md:col-span-2 lg:col-span-4 transition-all group ${
+        <div className={`relative overflow-hidden p-8 rounded-3xl shadow-sm border col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-5 transition-all group ${
           stats?.active 
             ? 'bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 border-gray-800 text-white' 
             : 'bg-white border-red-100 text-gray-900'
@@ -233,6 +233,19 @@ export default function MemberDashboard() {
           <p className="text-gray-500 text-sm font-bold uppercase tracking-wide">Total Visits</p>
           <h3 className="text-2xl font-black text-gray-900 mt-1">{stats?.attendanceCount || 0}</h3>
           <p className="text-xs text-gray-400 mt-2 font-medium">Lifetime check-ins</p>
+        </div>
+
+        {/* 6. Live Members Card */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-sky-50 text-sky-600">
+              <Users size={24} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 bg-sky-100 px-2 py-1 rounded-full">Live Now</span>
+          </div>
+          <p className="text-gray-500 text-sm font-bold uppercase tracking-wide">In Gym Count</p>
+          <h3 className="text-2xl font-black text-gray-900 mt-1">{stats?.liveMembersCount || 0}</h3>
+          <p className="text-xs text-gray-400 mt-2 font-medium">Currently training</p>
         </div>
 
       </div>

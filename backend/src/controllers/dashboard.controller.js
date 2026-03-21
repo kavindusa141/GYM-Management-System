@@ -29,11 +29,15 @@ exports.getDashboardStats = async (req, res) => {
     // 4. Total Scheduled Classes
     const totalClasses = await GymClass.count({ where: { status: 'SCHEDULED' } });
 
+    // 5. Live Members
+    const liveMembersCount = await Attendance.count({ where: { status: 'PRESENT' } });
+
     res.json({
       totalMembers,
       totalTrainers,
       totalRevenue: Math.round(totalRevenue),
-      totalClasses
+      totalClasses,
+      liveMembersCount
     });
 
   } catch (err) {
@@ -202,6 +206,8 @@ exports.getMemberStats = async (req, res) => {
     }
 
     // 7️⃣ Return dashboard data
+    const liveMembersCount = await Attendance.count({ where: { status: 'PRESENT' } });
+
     res.json({
       attendanceCount,
       avgMinutes,
@@ -212,7 +218,8 @@ exports.getMemberStats = async (req, res) => {
       startDate: activeSubscription ? activeSubscription.start_date : null,
       expiryDate: activeSubscription ? activeSubscription.end_date : null,
       daysLeft,
-      upcomingClasses
+      upcomingClasses,
+      liveMembersCount
     });
 
   } catch (err) {
@@ -281,11 +288,14 @@ exports.getTrainerDashboardStats = async (req, res) => {
       limit: 5
     });
 
+    const liveMembersCount = await Attendance.count({ where: { status: 'PRESENT' } });
+
     res.json({
       activeClients: activePlans,
       todayClassCount: todaysSchedule.length, // More accurate based on day name
       todaysSchedule,
-      recentLogs
+      recentLogs,
+      liveMembersCount
     });
 
   } catch (err) {
@@ -342,11 +352,14 @@ exports.getStaffDashboardStats = async (req, res) => {
       }]
     });
 
+    const liveMembersCount = await Attendance.count({ where: { status: 'PRESENT' } });
+
     res.json({
       totalMembers,
       todayAttendance,
       todayRevenue: Math.round(todayRevenue),
-      recentCheckins
+      recentCheckins,
+      liveMembersCount
     });
 
   } catch (err) {

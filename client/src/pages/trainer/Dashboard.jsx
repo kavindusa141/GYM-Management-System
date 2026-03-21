@@ -62,7 +62,17 @@ export default function TrainerDashboard() {
       </div>
 
       {/* QUICK STATS CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32">
+          <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+            <Activity size={20} />
+          </div>
+          <div>
+            <span className="text-3xl font-black text-gray-900">{stats.liveMembersCount || 0}</span>
+            <p className="text-xs font-bold text-gray-500 uppercase mt-1">Live in Gym</p>
+          </div>
+        </div>
+
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-32">
           <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
             <Users size={20} />
