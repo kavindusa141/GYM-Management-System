@@ -2,6 +2,20 @@ const User = require("../models/User");
 const SystemSetting = require("../models/SystemSetting");
 const bcrypt = require("bcrypt");
 const { Op } = require("sequelize");
+const nodemailer = require("nodemailer");
+const { PROFILE_UPDATE_TEMPLATE, PASSWORD_UPDATE_TEMPLATE } = require("../utils/emailTemplates");
+require("dotenv").config();
+
+// Configure Email Transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
 // --- USER SETTINGS (Member & Admin) ---
 
@@ -66,6 +80,27 @@ exports.updateAccountInfo = async (req, res) => {
     // Reload user to get the absolute latest data from DB
     await user.reload();
 
+    if (Object.keys(updates).length > 0) {
+      try {
+        const datetime = new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo", dateStyle: "full", timeStyle: "long" });
+        const fieldsChanged = Object.keys(updates).map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(", ");
+
+        const emailHtml = PROFILE_UPDATE_TEMPLATE
+          .replace("{{name}}", user.name)
+          .replace("{{datetime}}", datetime)
+          .replace("{{fields}}", fieldsChanged);
+
+        await transporter.sendMail({
+          from: `"Royal Fitness" <${process.env.SENDER_EMAIL}>`,
+          to: user.email,
+          subject: "Your Account Profile Was Updated",
+          html: emailHtml
+        });
+      } catch (emailErr) {
+        console.error("Profile Update Email Error:", emailErr);
+      }
+    }
+
     res.json({
       message: "Account details updated successfully",
       user: {
@@ -100,6 +135,22 @@ exports.changePassword = async (req, res) => {
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await user.update({ password: hashedPassword });
+
+    try {
+      const datetime = new Date().toLocaleString("en-US", { timeZone: "Asia/Colombo", dateStyle: "full", timeStyle: "long" });
+      const emailHtml = PASSWORD_UPDATE_TEMPLATE
+        .replace("{{name}}", user.name)
+        .replace("{{datetime}}", datetime);
+
+      await transporter.sendMail({
+        from: `"Royal Fitness" <${process.env.SENDER_EMAIL}>`,
+        to: user.email,
+        subject: "Security Alert: Password Changed",
+        html: emailHtml
+      });
+    } catch (emailErr) {
+      console.error("Password Update Email Error:", emailErr);
+    }
 
     res.json({ message: "Password changed successfully" });
   } catch (err) {

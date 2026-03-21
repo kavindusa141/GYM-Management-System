@@ -3,6 +3,21 @@ const MemberProfile = require("../models/MemberProfile");
 const bcrypt = require("bcrypt");
 const { Op } = require("sequelize");
 const { sendWhatsAppMessage } = require("../services/whatsapp.service");
+const nodemailer = require("nodemailer");
+const { MEMBER_REGISTRATION_TEMPLATE, EMPLOYEE_REGISTRATION_TEMPLATE } = require("../utils/emailTemplates");
+require("dotenv").config();
+
+// Configure Email Transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
 
 // 1. Get All Members (PAGINATED & OPTIMIZED)
 exports.getAllMembers = async (req, res) => {
@@ -181,6 +196,24 @@ exports.addMember = async (req, res) => {
       sendWhatsAppMessage(newUser.phone, welcomeMsg).catch(err => console.error("WhatsApp welcome error:", err));
     }
 
+    // --- Send Welcome Email ---
+    try {
+      const emailHtml = MEMBER_REGISTRATION_TEMPLATE
+        .replace(/{{gym_name}}/g, "Royal Fitness")
+        .replace("{{name}}", newUser.name)
+        .replace("{{email}}", email)
+        .replace("{{password}}", password); // using the raw password passed in req.body
+
+      await transporter.sendMail({
+        from: `"Royal Fitness" <${process.env.SENDER_EMAIL}>`,
+        to: email,
+        subject: "Welcome to Royal Fitness! Your Account Details Inside",
+        html: emailHtml
+      });
+    } catch (emailErr) {
+      console.error("Welcome Email Error:", emailErr);
+    }
+
     res.status(201).json({ message: "Member added successfully", user: newUser });
 
   } catch (err) {
@@ -319,6 +352,25 @@ exports.createEmployee = async (req, res) => {
     const customId = `${prefix}-${newUser.user_id}`;
 
     await newUser.update({ member_code: customId });
+
+    // --- Send Welcome Email to Employee ---
+    try {
+      const emailHtml = EMPLOYEE_REGISTRATION_TEMPLATE
+        .replace(/{{gym_name}}/g, "Royal Fitness")
+        .replace("{{name}}", newUser.name)
+        .replace("{{role}}", role)
+        .replace("{{email}}", email)
+        .replace("{{password}}", password); // using the raw password passed in req.body
+
+      await transporter.sendMail({
+        from: `"Royal Fitness" <${process.env.SENDER_EMAIL}>`,
+        to: email,
+        subject: `Welcome to the Royal Fitness Team!`,
+        html: emailHtml
+      });
+    } catch (emailErr) {
+      console.error("Employee Welcome Email Error:", emailErr);
+    }
 
     res.status(201).json({ message: `${role} created successfully`, member_code: customId });
 
