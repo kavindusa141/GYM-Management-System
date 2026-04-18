@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import LiveClock from '../../components/Shared/LiveClock';
-import { Calendar, User, Activity, AlertCircle, CheckCircle, Zap, Timer, ArrowRight, CreditCard, ChevronRight } from 'lucide-react';
+import { Calendar, User, Users, Activity, AlertCircle, CheckCircle, Zap, Timer, ArrowRight, CreditCard, ChevronRight, Clock } from 'lucide-react';
 
 // Helper to format minutes into "1h 20m" or "45m"
 const formatDuration = (mins) => {
@@ -65,6 +65,92 @@ export default function MemberDashboard() {
         </div>
       )}
 
+      {/* --- ALERTS --- */}
+      {!loading && !error && (
+        <div className="space-y-4">
+          {/* Profile Completion Alert */}
+          {stats?.isProfileComplete === false && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-blue-800 shadow-sm animate-fade-in-up">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600 shrink-0">
+                  <User size={20} />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Complete Your Profile</p>
+                  <p className="text-xs sm:text-sm text-blue-700/80 mt-0.5">Please update your profile with your physical stats and emergency contact for the best experience.</p>
+                </div>
+              </div>
+              <Link to="/member/profile-setup" className="shrink-0 w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs text-center font-bold rounded-lg shadow-sm transition-colors">
+                Setup Profile
+              </Link>
+            </div>
+          )}
+
+          {/* Rejected Payment Alert */}
+          {stats?.rejectedPayment && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-red-800 shadow-sm animate-fade-in-up">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-red-100 rounded-lg text-red-600 shrink-0 mt-0.5 sm:mt-0">
+                  <AlertCircle size={20} />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Payment Rejected</p>
+                  <p className="text-xs sm:text-sm text-red-700/80 mt-0.5">
+                    Your recent bank slip upload for Rs. {stats.rejectedPayment.amount} was rejected. 
+                    <span className="font-bold block mt-1"><span className="text-red-900">Reason:</span> {stats.rejectedPayment.reason}</span>
+                  </p>
+                </div>
+              </div>
+              <Link to="/member/payment" className="shrink-0 w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs text-center font-bold rounded-lg shadow-sm transition-colors">
+                View & Re-upload
+              </Link>
+            </div>
+          )}
+
+          {/* Delayed Class Alert */}
+          {stats?.delayedClassDetails && (
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-orange-800 shadow-sm animate-fade-in-up">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg text-orange-600 shrink-0 mt-0.5 sm:mt-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Class Delayed: {stats.delayedClassDetails.title}</p>
+                  <p className="text-xs sm:text-sm text-orange-700/80 mt-0.5">
+                    The start time has been changed from <del>{stats.delayedClassDetails.original_time}</del> to <strong className="text-orange-900">{stats.delayedClassDetails.delayed_time}</strong>.
+                    <span className="block mt-1"><strong>Reason:</strong> {stats.delayedClassDetails.reason}</span>
+                  </p>
+                </div>
+              </div>
+              <Link to="/member/schedule" className="shrink-0 w-full sm:w-auto px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs text-center font-bold rounded-lg shadow-sm transition-colors">
+                View Schedule
+              </Link>
+            </div>
+          )}
+
+          {/* Deleted Class Alert */}
+          {stats?.deletedClassDetails && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-red-800 shadow-sm animate-fade-in-up">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-red-100 rounded-lg text-red-600 shrink-0 mt-0.5 sm:mt-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Class Cancelled: {stats.deletedClassDetails.title}</p>
+                  <p className="text-xs sm:text-sm text-red-700/80 mt-0.5">
+                    Your scheduled class on <strong className="text-red-900">{new Date(stats.deletedClassDetails.date).toLocaleDateString()}</strong> at <strong className="text-red-900">{stats.deletedClassDetails.original_time}</strong> has been cancelled.
+                    <span className="block mt-1"><strong>Reason:</strong> {stats.deletedClassDetails.reason}</span>
+                  </p>
+                </div>
+              </div>
+              <Link to="/member/schedule" className="shrink-0 w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs text-center font-bold rounded-lg shadow-sm transition-colors">
+                View Schedule
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* --- Header Section --- */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -88,10 +174,10 @@ export default function MemberDashboard() {
       </header>
 
       {/* --- Main Grid --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         
         {/* 1. HERO CARD: Membership Status (Spans Full Width on lg) */}
-        <div className={`relative overflow-hidden p-8 rounded-3xl shadow-sm border col-span-1 md:col-span-2 lg:col-span-4 transition-all group ${
+        <div className={`relative overflow-hidden p-8 rounded-3xl shadow-sm border col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-5 transition-all group ${
           stats?.active 
             ? 'bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 border-gray-800 text-white' 
             : 'bg-white border-red-100 text-gray-900'
@@ -233,6 +319,19 @@ export default function MemberDashboard() {
           <p className="text-gray-500 text-sm font-bold uppercase tracking-wide">Total Visits</p>
           <h3 className="text-2xl font-black text-gray-900 mt-1">{stats?.attendanceCount || 0}</h3>
           <p className="text-xs text-gray-400 mt-2 font-medium">Lifetime check-ins</p>
+        </div>
+
+        {/* 6. Live Members Card */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-sky-50 text-sky-600">
+              <Users size={24} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 bg-sky-100 px-2 py-1 rounded-full">Live Now</span>
+          </div>
+          <p className="text-gray-500 text-sm font-bold uppercase tracking-wide">In Gym Count</p>
+          <h3 className="text-2xl font-black text-gray-900 mt-1">{stats?.liveMembersCount || 0}</h3>
+          <p className="text-xs text-gray-400 mt-2 font-medium">Currently training</p>
         </div>
 
       </div>

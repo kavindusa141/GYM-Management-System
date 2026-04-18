@@ -92,3 +92,214 @@ module.exports.PASSWORD_RESET_TEMPLATE = `
 </body>
 </html>
 `;
+
+module.exports.MEMBER_REGISTRATION_TEMPLATE = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Open Sans', sans-serif; background: #E5E5E5; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 50px auto; background: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #1F2937; margin: 0; }
+    .content { color: #4B5563; line-height: 1.6; font-size: 16px; }
+    .details { background: #F3F4F6; padding: 20px; border-radius: 5px; margin: 25px 0; border-left: 4px solid #F59E0B; }
+    .details p { margin: 10px 0; }
+    .password-badge { font-family: monospace; background: #E5E7EB; padding: 6px 12px; border-radius: 4px; font-size: 18px; font-weight: bold; color: #111827; letter-spacing: 1px; }
+    .warning { color: #DC2626; font-weight: bold; background: #FEE2E2; padding: 15px; border-radius: 5px; text-align: center; margin-top: 30px; border: 1px solid #FCA5A5; }
+    .footer { text-align: center; margin-top: 40px; font-size: 14px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to {{gym_name}}!</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>{{name}}</strong>,</p>
+      <p>We are thrilled to welcome you to the {{gym_name}} family! Your account has been successfully created by our administration team.</p>
+      
+      <p>Here are your account details to access our member portal:</p>
+      
+      <div class="details">
+        <p><strong>Username/Email:</strong> {{email}}</p>
+        <p><strong>Temporary Password:</strong> <span class="password-badge">{{password}}</span></p>
+      </div>
+
+      <div class="warning">
+        ⚠️ IMPORTANT: Please log in to your account and change your temporary password immediately for your account's security.
+      </div>
+      
+      <p style="margin-top: 30px;">Get ready to crush your fitness goals with us! If you have any questions, feel free to contact our support staff.</p>
+    </div>
+    <div class="footer">
+      <p>Stay strong,</p>
+      <p><strong>The {{gym_name}} Team</strong></p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+module.exports.EMPLOYEE_REGISTRATION_TEMPLATE = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Open Sans', sans-serif; background: #E5E5E5; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 50px auto; background: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #1F2937; margin: 0; }
+    .content { color: #4B5563; line-height: 1.6; font-size: 16px; }
+    .details { background: #F3F4F6; padding: 20px; border-radius: 5px; margin: 25px 0; border-left: 4px solid #3B82F6; }
+    .details p { margin: 10px 0; }
+    .password-badge { font-family: monospace; background: #E5E7EB; padding: 6px 12px; border-radius: 4px; font-size: 18px; font-weight: bold; color: #111827; letter-spacing: 1px; }
+    .warning { color: #DC2626; font-weight: bold; background: #FEE2E2; padding: 15px; border-radius: 5px; text-align: center; margin-top: 30px; border: 1px solid #FCA5A5; }
+    .footer { text-align: center; margin-top: 40px; font-size: 14px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to the Team!</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>{{name}}</strong>,</p>
+      <p>We are thrilled to welcome you to the {{gym_name}} staff! Your <strong>{{role}}</strong> account has been successfully created by our administration team.</p>
+      
+      <p>Here are your account details to access our management portal:</p>
+      
+      <div class="details">
+        <p><strong>Username/Email:</strong> {{email}}</p>
+        <p><strong>Temporary Password:</strong> <span class="password-badge">{{password}}</span></p>
+      </div>
+
+      <div class="warning">
+        ⚠️ IMPORTANT: Please log in to your account and change your temporary password immediately for security purposes.
+      </div>
+      
+      <p style="margin-top: 30px;">We look forward to working with you. If you have any questions, please contact the admin team.</p>
+    </div>
+    <div class="footer">
+      <p>Best regards,</p>
+      <p><strong>{{gym_name}} Management</strong></p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+module.exports.PROFILE_UPDATE_TEMPLATE = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Open Sans', sans-serif; background: #E5E5E5; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 50px auto; background: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #1F2937; margin: 0; }
+    .content { color: #4B5563; line-height: 1.6; font-size: 16px; }
+    .info { background: #F3F4F6; padding: 20px; border-radius: 5px; margin: 25px 0; border-left: 4px solid #10B981; }
+    .warning { color: #6B7280; font-size: 14px; margin-top: 30px; border-top: 1px solid #E5E7EB; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Account Details Updated</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>{{name}}</strong>,</p>
+      <p>This is a confirmation that your account profile details were successfully updated.</p>
+      
+      <div class="info">
+        <p><strong>Update Timestamp:</strong> {{datetime}}</p>
+        <p><strong>Updated Fields:</strong> {{fields}}</p>
+      </div>
+      
+      <div class="warning">
+        If you did not make this change, please contact our support team immediately to secure your account.
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+module.exports.PASSWORD_UPDATE_TEMPLATE = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Open Sans', sans-serif; background: #E5E5E5; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 50px auto; background: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #1F2937; margin: 0; }
+    .content { color: #4B5563; line-height: 1.6; font-size: 16px; }
+    .info { background: #FEE2E2; padding: 20px; border-radius: 5px; margin: 25px 0; border-left: 4px solid #DC2626; }
+    .warning { color: #6B7280; font-size: 14px; margin-top: 30px; border-top: 1px solid #E5E7EB; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Password Changed Successfully</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>{{name}}</strong>,</p>
+      <p>Your Royal Fitness account password was successfully changed.</p>
+      
+      <div class="info">
+        <p><strong>Change Timestamp:</strong> {{datetime}}</p>
+      </div>
+      
+      <div class="warning">
+        If you did not authorize this change, please contact our support team immediately, as your account may be compromised.
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+</body>
+</html>
+`;
+
+module.exports.CLASS_DELAY_TEMPLATE = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Open Sans', sans-serif; background: #E5E5E5; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 50px auto; background: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #1F2937; margin: 0; }
+    .content { color: #4B5563; line-height: 1.6; font-size: 16px; }
+    .info { background: #FFFBEB; padding: 20px; border-radius: 5px; margin: 25px 0; border-left: 4px solid #F59E0B; }
+    .footer { text-align: center; margin-top: 40px; font-size: 14px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="color: #D97706;">Class Delayed</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>{{name}}</strong>,</p>
+      <p>We are writing to inform you that your upcoming scheduled class <strong>{{class_name}}</strong> has been delayed.</p>
+      
+      <div class="info">
+        <p><strong>Original Start Time:</strong> <del>{{original_time}}</del></p>
+        <p><strong>New Start Time:</strong> <strong style="color: #D97706;">{{delayed_time}}</strong></p>
+        <p><strong>Reason:</strong> {{reason}}</p>
+      </div>
+      
+      <p>We apologize for any inconvenience this may cause and appreciate your understanding. If you can no longer attend, please cancel your booking through the member dashboard.</p>
+    </div>
+    <div class="footer">
+      <p>Best regards,</p>
+      <p><strong>The {{gym_name}} Team</strong></p>
+    </div>
+  </div>
+</body>
+</html>
+`;

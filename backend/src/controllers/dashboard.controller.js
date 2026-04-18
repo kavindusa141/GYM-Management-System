@@ -7,6 +7,7 @@ const MembershipPlan = require("../models/MembershipPlan");
 const ClassBooking = require("../models/ClassBooking");
 const WorkoutPlan = require("../models/WorkoutPlan");
 const WorkoutLog = require("../models/WorkoutLog");
+const MemberProfile = require("../models/MemberProfile");
 const { Op } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -29,11 +30,15 @@ exports.getDashboardStats = async (req, res) => {
     // 4. Total Scheduled Classes
     const totalClasses = await GymClass.count({ where: { status: 'SCHEDULED' } });
 
+    // 5. Live Members
+    const liveMembersCount = await Attendance.count({ where: { status: 'PRESENT' } });
+
     res.json({
       totalMembers,
       totalTrainers,
       totalRevenue: Math.round(totalRevenue),
-      totalClasses
+      totalClasses,
+      liveMembersCount
     });
 
   } catch (err) {
@@ -164,9 +169,30 @@ exports.getMemberStats = async (req, res) => {
     // 5️⃣ Upcoming classes count
     let upcomingClasses = 0;
     try {
-      upcomingClasses = await ClassBooking.count({
-        where: { user_id: memberId, status: "CONFIRMED" }
+      const bookings = await ClassBooking.findAll({
+        where: { user_id: memberId, status: "CONFIRMED" },
+        include: [{ 
+          model: GymClass, 
+          required: true, 
+          where: { status: { [Op.ne]: 'COMPLETED' } } 
+        }]
       });
+
+      const now = new Date();
+      upcomingClasses = bookings.filter(b => {
+        if (!b.GymClass) return false;
+        
+        const dateStr = typeof b.GymClass.class_date === 'string'
+          ? b.GymClass.class_date
+          : new Date(b.GymClass.class_date).toISOString().split('T')[0];
+          
+        const endTimeStr = typeof b.GymClass.end_time === 'string'
+          ? b.GymClass.end_time
+          : b.GymClass.end_time?.toString?.() || '00:00:00';
+          
+        const classEnd = new Date(`${dateStr}T${endTimeStr}`);
+        return classEnd >= now;
+      }).length;
     } catch (e) {
       upcomingClasses = 0;
     }
@@ -181,6 +207,103 @@ exports.getMemberStats = async (req, res) => {
     }
 
     // 7️⃣ Return dashboard data
+    const liveMembersCount = await Attendance.count({ where: { status: 'PRESENT' } });
+
+    // 8️⃣ Profile Completeness Check
+    const profile = await MemberProfile.findOne({ where: { user_id: memberId } });
+    const isProfileComplete = !!profile;
+
+    // 9️⃣ Check for rejected payment
+    const rejectedPayment = await Payment.findOne({
+      where: { user_id: memberId, status: 'FAILED' },
+      order: [['transaction_date', 'DESC']]
+    });
+
+    // 🔟 Check for delayed classes booked by this member
+    let delayedClassDetails = null;
+    try {
+      const bookingsWithDelay = await ClassBooking.findAll({
+        where: { user_id: memberId, status: "CONFIRMED" },
+        include: [{
+          model: GymClass,
+          required: true,
+          where: {
+            status: 'SCHEDULED',
+            delayed_start_time: { [Op.ne]: null }
+          }
+        }]
+      });
+
+      const now = new Date();
+      for (const b of bookingsWithDelay) {
+        if (!b.GymClass) continue;
+        const dateStr = typeof b.GymClass.class_date === 'string'
+          ? b.GymClass.class_date
+          : new Date(b.GymClass.class_date).toISOString().split('T')[0];
+        
+        const endTimeStr = typeof b.GymClass.end_time === 'string'
+          ? b.GymClass.end_time
+          : b.GymClass.end_time?.toString?.() || '00:00:00';
+          
+        const classEnd = new Date(`${dateStr}T${endTimeStr}`);
+        
+        // Only show if the class hasn't ended yet
+        if (classEnd >= now) {
+          delayedClassDetails = {
+            title: b.GymClass.title,
+            original_time: b.GymClass.start_time.substring(0, 5),
+            delayed_time: b.GymClass.delayed_start_time.substring(0, 5),
+            reason: b.GymClass.delay_reason
+          };
+          break; // Just show the first delayed class for simplicity
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch delayed classes", e);
+    }
+
+    // 1️⃣1️⃣ Check for deleted classes booked by this member
+    let deletedClassDetails = null;
+    try {
+      const bookingsWithDeleted = await ClassBooking.findAll({
+        where: { user_id: memberId, status: "CONFIRMED" },
+        include: [{
+          model: GymClass,
+          required: true,
+          where: {
+            is_deleted: true
+          }
+        }]
+      });
+
+      const now = new Date();
+      for (const b of bookingsWithDeleted) {
+        if (!b.GymClass) continue;
+        const dateStr = typeof b.GymClass.class_date === 'string'
+          ? b.GymClass.class_date
+          : new Date(b.GymClass.class_date).toISOString().split('T')[0];
+        
+        const endTimeStr = typeof b.GymClass.end_time === 'string'
+          ? b.GymClass.end_time
+          : b.GymClass.end_time?.toString?.() || '00:00:00';
+          
+        const classEnd = new Date(`${dateStr}T${endTimeStr}`);
+        
+        // Show if the class date is today or in the future
+        if (classEnd >= now) {
+          deletedClassDetails = {
+            title: b.GymClass.title,
+            original_time: b.GymClass.start_time.substring(0, 5),
+            date: b.GymClass.class_date,
+            reason: b.GymClass.delay_reason || "Class was cancelled and removed."
+          };
+          break;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch deleted classes", e);
+    }
+
     res.json({
       attendanceCount,
       avgMinutes,
@@ -191,7 +314,16 @@ exports.getMemberStats = async (req, res) => {
       startDate: activeSubscription ? activeSubscription.start_date : null,
       expiryDate: activeSubscription ? activeSubscription.end_date : null,
       daysLeft,
-      upcomingClasses
+      upcomingClasses,
+      liveMembersCount,
+      isProfileComplete,
+      delayedClassDetails,
+      deletedClassDetails,
+      rejectedPayment: rejectedPayment ? {
+        payment_id: rejectedPayment.payment_id,
+        reason: rejectedPayment.rejection_reason,
+        amount: rejectedPayment.amount
+      } : null
     });
 
   } catch (err) {
@@ -212,7 +344,12 @@ exports.getTrainerDashboardStats = async (req, res) => {
 
     // 1. Count Active Plans (Clients)
     const activePlans = await WorkoutPlan.count({
-      where: { trainer_id: trainerId, status: 'ACTIVE' }
+      where: { trainer_id: trainerId, status: 'ACTIVE' },
+      include: [{
+        model: User,
+        as: 'Member',
+        where: { is_deleted: false }
+      }]
     });
 
     // 2. Count Today's Classes
@@ -255,11 +392,14 @@ exports.getTrainerDashboardStats = async (req, res) => {
       limit: 5
     });
 
+    const liveMembersCount = await Attendance.count({ where: { status: 'PRESENT' } });
+
     res.json({
       activeClients: activePlans,
       todayClassCount: todaysSchedule.length, // More accurate based on day name
       todaysSchedule,
-      recentLogs
+      recentLogs,
+      liveMembersCount
     });
 
   } catch (err) {
@@ -316,11 +456,14 @@ exports.getStaffDashboardStats = async (req, res) => {
       }]
     });
 
+    const liveMembersCount = await Attendance.count({ where: { status: 'PRESENT' } });
+
     res.json({
       totalMembers,
       todayAttendance,
       todayRevenue: Math.round(todayRevenue),
-      recentCheckins
+      recentCheckins,
+      liveMembersCount
     });
 
   } catch (err) {

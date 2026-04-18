@@ -137,14 +137,10 @@ export default function AdminMemberProfile() {
                         <h3 className="text-gray-800 font-bold mb-4 flex items-center gap-2">
                             <Heart className="w-5 h-5 text-red-500" /> Goals & Activity
                         </h3>
-                        <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="grid gap-4">
                             <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
                                 <p className="text-xs text-orange-600 font-bold uppercase mb-1">Primary Goal</p>
                                 <p className="text-lg font-bold text-gray-900">{profile.fitness_goal || 'Not specified'}</p>
-                            </div>
-                            <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
-                                <p className="text-xs text-purple-600 font-bold uppercase mb-1">Activity Level</p>
-                                <p className="text-lg font-bold text-gray-900">{profile.activity_level || 'Not specified'}</p>
                             </div>
                         </div>
                     </div>

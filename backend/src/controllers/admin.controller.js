@@ -3,6 +3,21 @@ const MemberProfile = require("../models/MemberProfile");
 const bcrypt = require("bcrypt");
 const { Op } = require("sequelize");
 const { sendWhatsAppMessage } = require("../services/whatsapp.service");
+const nodemailer = require("nodemailer");
+const { MEMBER_REGISTRATION_TEMPLATE, EMPLOYEE_REGISTRATION_TEMPLATE } = require("../utils/emailTemplates");
+require("dotenv").config();
+
+// Configure Email Transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
 
 // 1. Get All Members (PAGINATED & OPTIMIZED)
 exports.getAllMembers = async (req, res) => {
@@ -97,24 +112,39 @@ exports.getAllMembers = async (req, res) => {
       distinct: true // Required so limit applies to Users, not joined rows
     });
 
+    const compareToday = new Date();
+    compareToday.setHours(0, 0, 0, 0);
+
     const processedMembers = members.map(member => {
+      let activeSub = null;
       let latestSub = null;
+
       if (member.UserSubscriptions && member.UserSubscriptions.length > 0) {
-        // Find latest dynamically to avoid 'limit 1' inside findAndCountAll include bug
+        // Sort descending by end_date
         const sortedSubs = [...member.UserSubscriptions].sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
         latestSub = sortedSubs[0];
+        
+        // Find if there's an active subscription that hasn't expired
+        activeSub = sortedSubs.find(sub => {
+          const ed = new Date(sub.end_date);
+          ed.setHours(0, 0, 0, 0);
+          return sub.status === 'ACTIVE' && ed >= compareToday;
+        });
       }
+
+      const targetSub = activeSub || latestSub;
 
       let subStatus = 'NO_PLAN';
       let planName = 'N/A';
       let expiryDate = null;
 
-      if (latestSub) {
-        const endDate = new Date(latestSub.end_date);
-        planName = latestSub.MembershipPlan?.name || 'Unknown Plan';
-        expiryDate = latestSub.end_date;
+      if (targetSub) {
+        const endDate = new Date(targetSub.end_date);
+        endDate.setHours(0, 0, 0, 0);
+        planName = targetSub.MembershipPlan?.name || 'Unknown Plan';
+        expiryDate = targetSub.end_date;
 
-        if (endDate >= today && latestSub.status === 'ACTIVE') {
+        if (endDate >= compareToday && targetSub.status === 'ACTIVE') {
           subStatus = 'ACTIVE';
         } else {
           subStatus = 'EXPIRED';
@@ -179,6 +209,24 @@ exports.addMember = async (req, res) => {
     if (newUser.phone) {
       const welcomeMsg = `🎉 *Welcome to Royal Fitness!*\n\nHi ${newUser.name.split(' ')[0]}, an administrator has created your gym profile. We are thrilled to have you! Log in to the portal to view your membership plans and book classes. 💪`;
       sendWhatsAppMessage(newUser.phone, welcomeMsg).catch(err => console.error("WhatsApp welcome error:", err));
+    }
+
+    // --- Send Welcome Email ---
+    try {
+      const emailHtml = MEMBER_REGISTRATION_TEMPLATE
+        .replace(/{{gym_name}}/g, "Royal Fitness")
+        .replace("{{name}}", newUser.name)
+        .replace("{{email}}", email)
+        .replace("{{password}}", password); // using the raw password passed in req.body
+
+      await transporter.sendMail({
+        from: `"Royal Fitness" <${process.env.SENDER_EMAIL}>`,
+        to: email,
+        subject: "Welcome to Royal Fitness! Your Account Details Inside",
+        html: emailHtml
+      });
+    } catch (emailErr) {
+      console.error("Welcome Email Error:", emailErr);
     }
 
     res.status(201).json({ message: "Member added successfully", user: newUser });
@@ -319,6 +367,25 @@ exports.createEmployee = async (req, res) => {
     const customId = `${prefix}-${newUser.user_id}`;
 
     await newUser.update({ member_code: customId });
+
+    // --- Send Welcome Email to Employee ---
+    try {
+      const emailHtml = EMPLOYEE_REGISTRATION_TEMPLATE
+        .replace(/{{gym_name}}/g, "Royal Fitness")
+        .replace("{{name}}", newUser.name)
+        .replace("{{role}}", role)
+        .replace("{{email}}", email)
+        .replace("{{password}}", password); // using the raw password passed in req.body
+
+      await transporter.sendMail({
+        from: `"Royal Fitness" <${process.env.SENDER_EMAIL}>`,
+        to: email,
+        subject: `Welcome to the Royal Fitness Team!`,
+        html: emailHtml
+      });
+    } catch (emailErr) {
+      console.error("Employee Welcome Email Error:", emailErr);
+    }
 
     res.status(201).json({ message: `${role} created successfully`, member_code: customId });
 

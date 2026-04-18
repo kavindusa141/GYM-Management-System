@@ -35,7 +35,7 @@ export default function MemberPayment() {
   const [method, setMethod] = useState('CARD');
   const [file, setFile] = useState(null);
   const [memberStats, setMemberStats] = useState(null);
-  const [showReplaceWarning, setShowReplaceWarning] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState(null);
 
   // --- NEW: Re-upload State ---
   const [reuploadId, setReuploadId] = useState(null);
@@ -106,11 +106,6 @@ export default function MemberPayment() {
   const handlePay = async (e) => {
     e.preventDefault();
 
-    if (memberStats?.active && !showReplaceWarning) {
-      setShowReplaceWarning(true);
-      return;
-    }
-
     try {
       if (method === 'CARD') {
         // STRIPE CHECKOUT FLOW
@@ -153,7 +148,6 @@ export default function MemberPayment() {
         toast.success("Slip uploaded! Waiting for admin approval.");
         setSelectedPlan(null);
         setFile(null);
-        setShowReplaceWarning(false);
         fetchData();
         setActiveTab('HISTORY');
       }
@@ -389,9 +383,10 @@ export default function MemberPayment() {
 
                     <button
                       onClick={() => {
-                        setSelectedPlan(plan);
                         if (memberStats?.active) {
-                          setShowReplaceWarning(false);
+                          setPendingPlan(plan);
+                        } else {
+                          setSelectedPlan(plan);
                         }
                       }}
                       className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/20 group-hover:shadow-blue-600/30"
@@ -530,35 +525,6 @@ export default function MemberPayment() {
 
             <form onSubmit={handlePay} className="space-y-5">
 
-              {/* WARNING: ACTIVE SUBSCRIPTION */}
-              {showReplaceWarning && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800 animate-fade-in-up">
-                  <p className="font-bold mb-1 flex items-center gap-2">
-                    <Clock size={16} /> Active Membership Detected
-                  </p>
-                  <p className="mb-3">
-                    You already have an active plan. Continuing will <b>replace it immediately</b>.
-                  </p>
-
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={handlePay}
-                      className="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-sm"
-                    >
-                      Confirm Replace
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowReplaceWarning(false)}
-                      className="flex-1 py-2 bg-white border border-gray-200 font-bold rounded-lg hover:bg-gray-50 text-gray-600"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* PAYMENT METHOD */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Select Payment Method</label>
@@ -629,7 +595,6 @@ export default function MemberPayment() {
                   type="button"
                   onClick={() => {
                     setSelectedPlan(null);
-                    setShowReplaceWarning(false);
                   }}
                   className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
                 >
@@ -637,14 +602,50 @@ export default function MemberPayment() {
                 </button>
                 <button
                   type="submit"
-                  disabled={showReplaceWarning} // Disable main button while warning is active
-                  className={`flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all ${showReplaceWarning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all"
                 >
                   Pay Rs. {finalAmount.toLocaleString()}
                 </button>
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== WARNING MODAL ===================== */}
+      {pendingPlan && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                <Clock className="h-6 w-6 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Active Membership Detected</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                You already have an active plan. Continuing will <b className="text-gray-700">replace it immediately</b>.
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPendingPlan(null)}
+                  className="flex-1 py-2.5 bg-white border border-gray-200 font-bold rounded-xl hover:bg-gray-50 text-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPlan(pendingPlan);
+                    setPendingPlan(null);
+                  }}
+                  className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all"
+                >
+                  Confirm Replace
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

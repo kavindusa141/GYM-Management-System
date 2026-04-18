@@ -94,8 +94,8 @@ export default function Receipt() {
 
         {/* Header */}
         <div className="flex flex-col items-center border-b-4 border-blue-600 pb-6 mb-6">
-          <img src={logo} alt="Royal Fitness Kingdom" className="h-24 w-auto object-contain mb-2" />
-          <p className="text-sm text-gray-500 mt-1">Premium Gym & Fitness Center</p>
+          <img src={logo} alt={receipt.gym_name || "Royal Fitness"} className="h-24 w-auto object-contain mb-2" />
+          <h1 className="text-2xl font-black text-blue-900 tracking-wider mt-2">{receipt.gym_name || "ROYAL FITNESS KINGDOM"}</h1>
         </div>
 
         {/* Receipt Title */}

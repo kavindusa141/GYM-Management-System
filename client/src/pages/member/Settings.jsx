@@ -71,6 +71,16 @@ export default function MemberSettings() {
 
   const handleAccountUpdate = async (e) => {
     e.preventDefault();
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(accountData.email)) {
+        return toast.error("Please enter a valid email address");
+    }
+    
+    if (accountData.phone && accountData.phone.length !== 10) {
+        return toast.error("Phone number must be exactly 10 digits");
+    }
+
     try {
       await api.put('/settings/update-account', accountData);
       toast.success("Profile details updated! Please re-login to see changes.");
@@ -214,11 +224,12 @@ export default function MemberSettings() {
               <div className="relative group">
                 <Phone className="absolute left-3 top-3 text-gray-400 w-5 h-5 pointer-events-none" />
                 <input
-                  type="text"
+                  type="tel"
+                  maxLength="10"
                   ref={phoneInputRef}
                   className="w-full pl-10 pr-10 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                   value={accountData.phone}
-                  onChange={(e) => setAccountData({ ...accountData, phone: e.target.value })}
+                  onChange={(e) => setAccountData({ ...accountData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                   placeholder="e.g. 0712345678"
                 />
                 <button

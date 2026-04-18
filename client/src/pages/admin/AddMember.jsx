@@ -18,6 +18,16 @@ export default function AddMember() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            return toast.error("Please enter a valid email address");
+        }
+        
+        if (formData.phone && formData.phone.length !== 10) {
+            return toast.error("Phone number must be exactly 10 digits");
+        }
+
         setLoading(true);
         try {
             await api.post('/admin/members', formData);
@@ -108,11 +118,12 @@ export default function AddMember() {
                                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
                                         <input
                                             required
-                                            type="text"
+                                            type="tel"
+                                            maxLength="10"
                                             className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none font-bold text-gray-900 transition-all placeholder:text-gray-400"
-                                            placeholder="077 123 4567"
+                                            placeholder="0771234567"
                                             value={formData.phone}
-                                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                            onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                                         />
                                     </div>
                                 </div>

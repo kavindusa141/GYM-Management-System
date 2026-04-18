@@ -3,7 +3,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import {
   FileText, Receipt, Upload, CheckCircle, Calendar,
-  Search, ChevronDown, Filter, X, XCircle, AlertCircle
+  Search, ChevronDown, Filter, X, XCircle, AlertCircle, Banknote
 } from 'lucide-react';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -326,7 +326,7 @@ export default function Billing() {
 
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-gray-500" />
+                  <Banknote className="w-5 h-5 text-gray-500" />
                   <h3 className="font-bold text-gray-900">History</h3>
 
                   {/* Revenue Badge */}
@@ -420,10 +420,21 @@ export default function Billing() {
                         </div>
 
                         {pay.slip_url && (
-                          <a href={pay.slip_url.startsWith('http') ? pay.slip_url : `${BACKEND_URL}${pay.slip_url}`} target="_blank" rel="noreferrer"
-                            className="text-xs text-blue-600 font-bold underline mt-2 block hover:text-blue-800 flex items-center gap-1">
-                            <FileText className="w-3 h-3" /> View Bank Slip
-                          </a>
+                          <div className="mt-3">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Uploaded Slip</p>
+                            <a href={pay.slip_url.startsWith('http') ? pay.slip_url : `${BACKEND_URL}${pay.slip_url}`} target="_blank" rel="noreferrer" className="block relative group w-24 h-24 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                              <img 
+                                src={pay.slip_url.startsWith('http') ? pay.slip_url : `${BACKEND_URL}${pay.slip_url}`} 
+                                alt="Bank Slip" 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-white text-xs font-bold flex items-center gap-1">
+                                  <FileText className="w-3 h-3" /> View
+                                </span>
+                              </div>
+                            </a>
+                          </div>
                         )}
                         {pay.reference_number && (
                           <p className="text-[10px] text-gray-400 font-mono mt-1">Ref: {pay.reference_number}</p>

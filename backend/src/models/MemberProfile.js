@@ -62,14 +62,9 @@ const MemberProfile = sequelize.define("MemberProfile", {
     allowNull: true
   },
 
-  // Fitness Details
   fitness_goal: {
     type: DataTypes.STRING,
     defaultValue: 'General Health'
-  },
-  activity_level: {
-    type: DataTypes.STRING,
-    defaultValue: 'Moderately Active'
   },
   bmi: DataTypes.DECIMAL(5, 2)
 

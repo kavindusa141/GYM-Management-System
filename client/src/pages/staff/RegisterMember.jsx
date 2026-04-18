@@ -45,6 +45,16 @@ export default function RegisterMember() {
   // --- REGISTER HANDLER ---
   const handleRegister = async (e) => {
     e.preventDefault();
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+        return toast.error("Please enter a valid email address");
+    }
+    
+    if (formData.phone && formData.phone.length !== 10) {
+        return toast.error("Phone number must be exactly 10 digits");
+    }
+
     setLoading(true);
     try {
       await api.post('/admin/members', formData);
@@ -154,11 +164,12 @@ export default function RegisterMember() {
                   <div className="relative">
                     <Phone className="absolute left-3 top-3.5 text-gray-400 w-5 h-5" />
                     <input 
-                      type="text" required
+                      type="tel" required
+                      maxLength="10"
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                      placeholder="077 123 4567"
+                      placeholder="0771234567"
                       value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10)})}
                     />
                   </div>
                 </div>

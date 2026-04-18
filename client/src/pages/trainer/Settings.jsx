@@ -67,6 +67,16 @@ export default function TrainerSettings() {
 
   const handleAccountUpdate = async (e) => {
     e.preventDefault();
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(accountData.email)) {
+        return toast.error("Please enter a valid email address");
+    }
+    
+    if (accountData.phone && accountData.phone.length !== 10) {
+        return toast.error("Phone number must be exactly 10 digits");
+    }
+
     try {
       await api.put('/settings/update-account', accountData);
       toast.success("Profile updated! Please re-login to reflect changes.");
@@ -203,11 +213,12 @@ export default function TrainerSettings() {
               <div className="relative group">
                 <Phone className="absolute left-3 top-3 text-gray-400 w-5 h-5 pointer-events-none" />
                 <input
-                  type="text"
+                  type="tel"
+                  maxLength="10"
                   ref={phoneInputRef}
                   className="w-full pl-10 pr-10 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
                   value={accountData.phone}
-                  onChange={(e) => setAccountData({ ...accountData, phone: e.target.value })}
+                  onChange={(e) => setAccountData({ ...accountData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                 />
                 <button type="button" onClick={() => clearField('phone', phoneInputRef)} className="absolute right-3 top-3 text-gray-400 hover:text-blue-600">
                   <Edit2 className="w-4 h-4" />
