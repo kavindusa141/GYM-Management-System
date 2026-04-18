@@ -260,4 +260,46 @@ module.exports.PASSWORD_UPDATE_TEMPLATE = `
   </div>
 </body>
 </html>
+</body>
+</html>
+`;
+
+module.exports.CLASS_DELAY_TEMPLATE = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Open Sans', sans-serif; background: #E5E5E5; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 50px auto; background: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { color: #1F2937; margin: 0; }
+    .content { color: #4B5563; line-height: 1.6; font-size: 16px; }
+    .info { background: #FFFBEB; padding: 20px; border-radius: 5px; margin: 25px 0; border-left: 4px solid #F59E0B; }
+    .footer { text-align: center; margin-top: 40px; font-size: 14px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="color: #D97706;">Class Delayed</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>{{name}}</strong>,</p>
+      <p>We are writing to inform you that your upcoming scheduled class <strong>{{class_name}}</strong> has been delayed.</p>
+      
+      <div class="info">
+        <p><strong>Original Start Time:</strong> <del>{{original_time}}</del></p>
+        <p><strong>New Start Time:</strong> <strong style="color: #D97706;">{{delayed_time}}</strong></p>
+        <p><strong>Reason:</strong> {{reason}}</p>
+      </div>
+      
+      <p>We apologize for any inconvenience this may cause and appreciate your understanding. If you can no longer attend, please cancel your booking through the member dashboard.</p>
+    </div>
+    <div class="footer">
+      <p>Best regards,</p>
+      <p><strong>The {{gym_name}} Team</strong></p>
+    </div>
+  </div>
+</body>
+</html>
 `;

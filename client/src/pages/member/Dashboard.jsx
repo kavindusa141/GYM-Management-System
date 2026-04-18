@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import LiveClock from '../../components/Shared/LiveClock';
-import { Calendar, User, Users, Activity, AlertCircle, CheckCircle, Zap, Timer, ArrowRight, CreditCard, ChevronRight } from 'lucide-react';
+import { Calendar, User, Users, Activity, AlertCircle, CheckCircle, Zap, Timer, ArrowRight, CreditCard, ChevronRight, Clock } from 'lucide-react';
 
 // Helper to format minutes into "1h 20m" or "45m"
 const formatDuration = (mins) => {
@@ -62,6 +62,92 @@ export default function MemberDashboard() {
         <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700 shadow-sm">
           <AlertCircle size={20} />
           <p className="font-medium text-sm">Unable to load some data. Please refresh or try again later.</p>
+        </div>
+      )}
+
+      {/* --- ALERTS --- */}
+      {!loading && !error && (
+        <div className="space-y-4">
+          {/* Profile Completion Alert */}
+          {stats?.isProfileComplete === false && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-blue-800 shadow-sm animate-fade-in-up">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600 shrink-0">
+                  <User size={20} />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Complete Your Profile</p>
+                  <p className="text-xs sm:text-sm text-blue-700/80 mt-0.5">Please update your profile with your physical stats and emergency contact for the best experience.</p>
+                </div>
+              </div>
+              <Link to="/member/profile-setup" className="shrink-0 w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs text-center font-bold rounded-lg shadow-sm transition-colors">
+                Setup Profile
+              </Link>
+            </div>
+          )}
+
+          {/* Rejected Payment Alert */}
+          {stats?.rejectedPayment && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-red-800 shadow-sm animate-fade-in-up">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-red-100 rounded-lg text-red-600 shrink-0 mt-0.5 sm:mt-0">
+                  <AlertCircle size={20} />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Payment Rejected</p>
+                  <p className="text-xs sm:text-sm text-red-700/80 mt-0.5">
+                    Your recent bank slip upload for Rs. {stats.rejectedPayment.amount} was rejected. 
+                    <span className="font-bold block mt-1"><span className="text-red-900">Reason:</span> {stats.rejectedPayment.reason}</span>
+                  </p>
+                </div>
+              </div>
+              <Link to="/member/payment" className="shrink-0 w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs text-center font-bold rounded-lg shadow-sm transition-colors">
+                View & Re-upload
+              </Link>
+            </div>
+          )}
+
+          {/* Delayed Class Alert */}
+          {stats?.delayedClassDetails && (
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-orange-800 shadow-sm animate-fade-in-up">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg text-orange-600 shrink-0 mt-0.5 sm:mt-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Class Delayed: {stats.delayedClassDetails.title}</p>
+                  <p className="text-xs sm:text-sm text-orange-700/80 mt-0.5">
+                    The start time has been changed from <del>{stats.delayedClassDetails.original_time}</del> to <strong className="text-orange-900">{stats.delayedClassDetails.delayed_time}</strong>.
+                    <span className="block mt-1"><strong>Reason:</strong> {stats.delayedClassDetails.reason}</span>
+                  </p>
+                </div>
+              </div>
+              <Link to="/member/schedule" className="shrink-0 w-full sm:w-auto px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs text-center font-bold rounded-lg shadow-sm transition-colors">
+                View Schedule
+              </Link>
+            </div>
+          )}
+
+          {/* Deleted Class Alert */}
+          {stats?.deletedClassDetails && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-red-800 shadow-sm animate-fade-in-up">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-red-100 rounded-lg text-red-600 shrink-0 mt-0.5 sm:mt-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Class Cancelled: {stats.deletedClassDetails.title}</p>
+                  <p className="text-xs sm:text-sm text-red-700/80 mt-0.5">
+                    Your scheduled class on <strong className="text-red-900">{new Date(stats.deletedClassDetails.date).toLocaleDateString()}</strong> at <strong className="text-red-900">{stats.deletedClassDetails.original_time}</strong> has been cancelled.
+                    <span className="block mt-1"><strong>Reason:</strong> {stats.deletedClassDetails.reason}</span>
+                  </p>
+                </div>
+              </div>
+              <Link to="/member/schedule" className="shrink-0 w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs text-center font-bold rounded-lg shadow-sm transition-colors">
+                View Schedule
+              </Link>
+            </div>
+          )}
         </div>
       )}
 

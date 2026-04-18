@@ -30,6 +30,10 @@ export default function MyClasses() {
   const [showBookingsModal, setShowBookingsModal] = useState(false);
   const [selectedClassBookings, setSelectedClassBookings] = useState(null);
 
+  const [showDelayModal, setShowDelayModal] = useState(false);
+  const [delayClassItem, setDelayClassItem] = useState(null);
+  const [delayData, setDelayData] = useState({ delayed_start_time: '', delay_reason: '' });
+
   useEffect(() => {
     fetchClasses();
   }, []);
@@ -111,6 +115,18 @@ export default function MyClasses() {
     } catch (error) {
       const errMsg = error.response?.data?.message || `Failed to ${newStatus.toLowerCase()} class`;
       toast.error(errMsg);
+    }
+  };
+
+  const handleDelaySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/classes/${delayClassItem.class_id}/delay`, delayData);
+      toast.success("Class delayed and members notified");
+      setShowDelayModal(false);
+      fetchClasses();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delay class");
     }
   };
 
@@ -276,15 +292,26 @@ export default function MyClasses() {
                 )}
 
                 {/* Timing Info and Messages */}
-                {cls.status === 'SCHEDULED' && cls.hours_until_start !== undefined && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs text-blue-700">
-                      <span className="font-semibold">Class starts in:</span> {formatTimeLeft(cls.hours_until_start)}
-                    </p>
-                    {cls.hours_until_start < 12 && (
-                      <p className="text-xs text-red-600 mt-1">
-                        <AlertCircle size={12} className="inline mr-1" /> Cannot cancel or restore within 12 hours of class start time
-                      </p>
+                {cls.status === 'SCHEDULED' && (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {cls.hours_until_start !== undefined && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs text-blue-700">
+                          <span className="font-semibold">Class starts in:</span> {formatTimeLeft(cls.hours_until_start)}
+                        </p>
+                        {cls.hours_until_start < 12 && (
+                          <p className="text-xs text-red-600 mt-1">
+                            <AlertCircle size={12} className="inline mr-1" /> Cannot cancel or restore within 12 hours of class start time
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {cls.delayed_start_time && (
+                      <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p className="text-xs text-orange-700">
+                          <span className="font-semibold">Delayed To:</span> {formatTime(cls.delayed_start_time)}
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}
@@ -311,6 +338,18 @@ export default function MyClasses() {
                           <CheckCircle size={16} /> Mark Completed
                         </button>
                       )}
+
+                      {/* Show Delay button */}
+                      <button
+                        onClick={() => {
+                          setDelayClassItem(cls);
+                          setDelayData({ delayed_start_time: cls.start_time.substring(0, 5), delay_reason: '' });
+                          setShowDelayModal(true);
+                        }}
+                        className="w-full py-2 bg-orange-50 border border-orange-200 text-orange-600 rounded-lg text-sm font-bold hover:bg-orange-100 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Clock size={16} /> Delay Class
+                      </button>
 
                       {/* Show cancel button with 12-hour validation */}
                       {cls.can_cancel ? (
@@ -418,6 +457,46 @@ export default function MyClasses() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELAY CLASS MODAL */}
+      {showDelayModal && delayClassItem && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-fade-in-up relative">
+            <button
+              onClick={() => setShowDelayModal(false)}
+              className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="text-orange-500" /> Delay Class
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Marking this class as delayed will send an email notification to all booked members.
+            </p>
+            <form onSubmit={handleDelaySubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">New Start Time</label>
+                <input required type="time"
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                  value={delayData.delayed_start_time} onChange={e => setDelayData({ ...delayData, delayed_start_time: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason for Delay</label>
+                <textarea required
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500 resize-none h-24"
+                  placeholder="e.g. Running 15 minutes late..."
+                  value={delayData.delay_reason} onChange={e => setDelayData({ ...delayData, delay_reason: e.target.value })}
+                ></textarea>
+              </div>
+              <button type="submit" className="w-full bg-orange-600 text-white font-bold py-3 rounded-xl hover:bg-orange-700 transition-colors">
+                Confirm Delay & Notify
+              </button>
+            </form>
           </div>
         </div>
       )}

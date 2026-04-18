@@ -48,6 +48,10 @@ export default function ManageClasses() {
   const [showBookingsModal, setShowBookingsModal] = useState(false);
   const [selectedClassBookings, setSelectedClassBookings] = useState(null);
 
+  const [showDelayModal, setShowDelayModal] = useState(false);
+  const [delayClassItem, setDelayClassItem] = useState(null);
+  const [delayData, setDelayData] = useState({ delayed_start_time: '', delay_reason: '' });
+
 
 
   // --- INITIAL DATA LOAD ---
@@ -186,6 +190,18 @@ export default function ManageClasses() {
     }
   };
 
+  const handleDelaySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/classes/${delayClassItem.class_id}/delay`, delayData);
+      toast.success("Class delayed and members notified");
+      setShowDelayModal(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delay class");
+    }
+  };
+
 
 
   // --- RENDER ---
@@ -315,14 +331,23 @@ export default function ManageClasses() {
                   </div>
                 </div>
 
-                {/* Starts In Indicator */}
-                {!isCancelled && !isOverdue && cls.hours_until_start !== undefined && cls.hours_until_start > 0 && (
-                  <div className="bg-blue-50/50 border border-blue-100 p-2 rounded-lg -mt-1 -mb-1">
-                    <p className="text-xs text-blue-700">
-                      <span className="font-bold">Starts in:</span> {formatTimeLeft(cls.hours_until_start)}
-                    </p>
-                  </div>
-                )}
+                {/* Starts In Indicator & Delay Info */}
+                <div className="flex flex-col gap-1">
+                  {!isCancelled && !isOverdue && cls.hours_until_start !== undefined && cls.hours_until_start > 0 && (
+                    <div className="bg-blue-50/50 border border-blue-100 p-2 rounded-lg -mt-1 -mb-1">
+                      <p className="text-xs text-blue-700">
+                        <span className="font-bold">Starts in:</span> {formatTimeLeft(cls.hours_until_start)}
+                      </p>
+                    </div>
+                  )}
+                  {cls.delayed_start_time && (
+                    <div className="bg-orange-50/50 border border-orange-100 p-2 rounded-lg mb-1">
+                      <p className="text-xs text-orange-700">
+                        <span className="font-bold">Delayed To:</span> {formatTime(cls.delayed_start_time)}
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 <div className="h-px bg-gray-100 w-full mt-2"></div>
 
@@ -347,6 +372,11 @@ export default function ManageClasses() {
                       {cls.status === 'SCHEDULED' && (
                         <>
                           <button onClick={() => handleStatusUpdate(cls.class_id, 'COMPLETED')} className="col-span-1 p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 flex justify-center" title="Mark Completed"><CheckCircle size={18} /></button>
+                          <button onClick={() => {
+                            setDelayClassItem(cls);
+                            setDelayData({ delayed_start_time: cls.start_time.substring(0, 5), delay_reason: '' });
+                            setShowDelayModal(true);
+                          }} className="col-span-1 p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 flex justify-center" title="Delay Class"><Clock size={18} /></button>
                           <button
                             onClick={() => handleStatusUpdate(cls.class_id, 'CANCELLED')}
                             disabled={!cls.can_cancel}
@@ -469,6 +499,46 @@ export default function ManageClasses() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELAY CLASS MODAL */}
+      {showDelayModal && delayClassItem && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl animate-fade-in-up relative">
+            <button
+              onClick={() => setShowDelayModal(false)}
+              className="absolute top-4 right-4 p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="text-orange-500" /> Delay Class
+            </h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Marking this class as delayed will send an email notification to all booked members.
+            </p>
+            <form onSubmit={handleDelaySubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">New Start Time</label>
+                <input required type="time"
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                  value={delayData.delayed_start_time} onChange={e => setDelayData({ ...delayData, delayed_start_time: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason for Delay</label>
+                <textarea required
+                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500 resize-none h-24"
+                  placeholder="e.g. Trainer is running 15 minutes late..."
+                  value={delayData.delay_reason} onChange={e => setDelayData({ ...delayData, delay_reason: e.target.value })}
+                ></textarea>
+              </div>
+              <button type="submit" className="w-full bg-orange-600 text-white font-bold py-3 rounded-xl hover:bg-orange-700 transition-colors">
+                Confirm Delay & Notify
+              </button>
+            </form>
           </div>
         </div>
       )}

@@ -12,6 +12,7 @@ const Payment = require("../models/Payment");
 const UserSubscription = require("../models/UserSubscription");
 const MembershipPlan = require("../models/MembershipPlan");
 const User = require("../models/User");
+const SystemSetting = require("../models/SystemSetting");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 /**
@@ -271,9 +272,14 @@ exports.createPayment = async (req, res) => {
     // ===============================
     // HANDLE SLIP UPLOAD
     // ===============================
-    const slip_url = req.file ? req.file.path : null;
+    let slip_url = null;
+    if (req.file) {
+      slip_url = req.file.path;
+    } else if (req.files && req.files.length > 0) {
+      slip_url = req.files[0].path;
+    }
 
-    console.log(`[PAYMENT] User: ${user_id}, Method: ${payment_method}, File received: ${req.file ? 'YES' : 'NO'}, Slip URL: ${slip_url}`);
+    console.log(`[PAYMENT] User: ${user_id}, Method: ${payment_method}, File received: ${slip_url ? 'YES' : 'NO'}, Slip URL: ${slip_url}`);
 
     // ===============================
     // PAYMENT STATUS LOGIC
@@ -510,6 +516,17 @@ exports.getPaymentReceipt = async (req, res) => {
       return res.status(400).json({ message: "Receipt not available yet" });
     }
 
+    // Fetch system gym name dynamically
+    let gymName = "ROYAL FITNESS KINGDOM";
+    try {
+      const setting = await SystemSetting.findOne({ where: { key_name: "system_name" } });
+      if (setting && setting.value) {
+        gymName = setting.value.toUpperCase();
+      }
+    } catch (e) {
+      console.error("Failed to fetch system name", e);
+    }
+
     res.json({
       receipt_no: `RFK-${payment.payment_id}`,
       date: payment.transaction_date,
@@ -520,7 +537,8 @@ exports.getPaymentReceipt = async (req, res) => {
       amount: payment.amount,
       method: payment.payment_method,
       reference: payment.reference_number,
-      status: payment.status
+      status: payment.status,
+      gym_name: gymName
     });
 
   } catch (err) {
@@ -565,6 +583,17 @@ exports.downloadReceiptPDF = async (req, res) => {
       return res.status(400).json({ message: "Receipt not available for download yet" });
     }
 
+    // Fetch system gym name dynamically
+    let gymName = "ROYAL FITNESS KINGDOM";
+    try {
+      const setting = await SystemSetting.findOne({ where: { key_name: "system_name" } });
+      if (setting && setting.value) {
+        gymName = setting.value.toUpperCase();
+      }
+    } catch (e) {
+      console.error("Failed to fetch system name", e);
+    }
+
     const receiptNo = `RFK-${payment.payment_id}`;
     const transactionDate = new Date(payment.transaction_date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -602,8 +631,7 @@ exports.downloadReceiptPDF = async (req, res) => {
       <body>
         <div class="container">
           <div class="header">
-            <div class="gym-name">🏋️ ROYAL FITNESS</div>
-            <div class="tagline">Premium Gym & Fitness Center</div>
+            <div class="gym-name">🏋️ ${gymName}</div>
           </div>
 
           <div class="receipt-title">PAYMENT RECEIPT</div>

@@ -4,6 +4,21 @@ const ClassBooking = require("../models/ClassBooking");
 const { Op } = require("sequelize");
 
 const TrainerAvailability = require("../models/TrainerAvailability");
+const SystemSetting = require("../models/SystemSetting");
+const nodemailer = require("nodemailer");
+const { CLASS_DELAY_TEMPLATE } = require("../utils/emailTemplates");
+require("dotenv").config();
+
+// Configure Email Transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
 // HELPER: Check if trainer is available (no time conflicts AND has availability slot)
 const checkTrainerAvailability = async (trainer_id, class_date, start_time, end_time, excludeClassId = null) => {
@@ -126,6 +141,7 @@ exports.createClass = async (req, res) => {
 exports.getAllClasses = async (req, res) => {
   try {
     const classes = await GymClass.findAll({
+      where: { is_deleted: false },
       include: [
         { model: User, as: 'Trainer', attributes: ['name', 'user_id', 'member_code'] },
         {
@@ -419,7 +435,15 @@ exports.deleteClass = async (req, res) => {
       return res.status(404).json({ message: "Class not found" });
     }
 
-    await cls.destroy();
+    // Soft Delete
+    await cls.update({
+      is_deleted: true,
+      status: 'CANCELLED',
+      cancelled_by_id: req.user.id,
+      cancelled_by_name: req.user.name,
+      cancelled_at: new Date()
+    });
+    
     res.json({ message: "Class deleted successfully" });
   } catch (err) {
     console.error("Delete Class Error:", err);
@@ -432,7 +456,10 @@ exports.getTrainerClasses = async (req, res) => {
   try {
     // FIX: Use req.user.id
     const classes = await GymClass.findAll({
-      where: { trainer_id: req.user.id },
+      where: { 
+        trainer_id: req.user.id,
+        is_deleted: false 
+      },
       include: [
         { model: User, as: 'Trainer', attributes: ['name', 'user_id'] },
         {
@@ -501,6 +528,81 @@ exports.getTrainerClasses = async (req, res) => {
     res.json(formatted);
   } catch (err) {
     console.error("Get Trainer Classes Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 7. Delay Class and Notify Members
+exports.delayClass = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { delayed_start_time, delay_reason } = req.body;
+
+    if (!delayed_start_time) {
+      return res.status(400).json({ message: "Delayed start time is required." });
+    }
+
+    const cls = await GymClass.findByPk(id, {
+      include: [{ model: User, as: 'Trainer', attributes: ['name'] }]
+    });
+
+    if (!cls) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    if (cls.status !== 'SCHEDULED') {
+      return res.status(400).json({ message: "Only scheduled classes can be delayed." });
+    }
+
+    // Permission check for Trainer
+    if (req.user.role === 'TRAINER' && cls.trainer_id !== req.user.id) {
+      return res.status(403).json({ message: "You can only delay your own classes." });
+    }
+
+    // Update class
+    await cls.update({
+      delayed_start_time,
+      delay_reason: delay_reason || "No reason provided"
+    });
+
+    // Notify Members
+    const confirmedBookings = await ClassBooking.findAll({
+      where: { class_id: id, status: 'CONFIRMED' },
+      include: [{ model: User, attributes: ['name', 'email'] }]
+    });
+
+    if (confirmedBookings.length > 0) {
+      let gymName = "Royal Fitness Kingdom";
+      try {
+        const setting = await SystemSetting.findOne({ where: { key_name: "system_name" } });
+        if (setting && setting.value) gymName = setting.value;
+      } catch (e) {
+        console.error("Error fetching gym name", e);
+      }
+
+      for (const booking of confirmedBookings) {
+        if (booking.User && booking.User.email) {
+          const emailHtml = CLASS_DELAY_TEMPLATE
+            .replace(/{{name}}/g, booking.User.name)
+            .replace(/{{class_name}}/g, cls.title)
+            .replace(/{{original_time}}/g, cls.start_time.substring(0, 5))
+            .replace(/{{delayed_time}}/g, delayed_start_time)
+            .replace(/{{reason}}/g, delay_reason || "No reason provided")
+            .replace(/{{gym_name}}/g, gymName);
+
+          await transporter.sendMail({
+            from: `"${gymName}" <${process.env.SENDER_EMAIL}>`,
+            to: booking.User.email,
+            subject: `Class Delayed: ${cls.title}`,
+            html: emailHtml
+          }).catch(err => console.error("Failed to send delay email to", booking.User.email, err));
+        }
+      }
+    }
+
+    res.json({ message: "Class delayed and members notified." });
+  } catch (err) {
+    console.error("Delay Class Error:", err);
     res.status(500).json({ error: err.message });
   }
 };

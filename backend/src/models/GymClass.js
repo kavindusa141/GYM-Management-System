@@ -43,6 +43,14 @@ const GymClass = sequelize.define("GymClass", {
     type: DataTypes.INTEGER,
     defaultValue: 20
   },
+  delayed_start_time: {
+    type: DataTypes.TIME,
+    allowNull: true
+  },
+  delay_reason: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   status: {
     type: DataTypes.ENUM('SCHEDULED', 'COMPLETED', 'CANCELLED'),
     defaultValue: 'SCHEDULED'
@@ -62,6 +70,10 @@ const GymClass = sequelize.define("GymClass", {
   cancelled_at: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  is_deleted: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
 
   // --- LEGACY FIELDS (Auto-calculated) ---

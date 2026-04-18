@@ -112,24 +112,39 @@ exports.getAllMembers = async (req, res) => {
       distinct: true // Required so limit applies to Users, not joined rows
     });
 
+    const compareToday = new Date();
+    compareToday.setHours(0, 0, 0, 0);
+
     const processedMembers = members.map(member => {
+      let activeSub = null;
       let latestSub = null;
+
       if (member.UserSubscriptions && member.UserSubscriptions.length > 0) {
-        // Find latest dynamically to avoid 'limit 1' inside findAndCountAll include bug
+        // Sort descending by end_date
         const sortedSubs = [...member.UserSubscriptions].sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
         latestSub = sortedSubs[0];
+        
+        // Find if there's an active subscription that hasn't expired
+        activeSub = sortedSubs.find(sub => {
+          const ed = new Date(sub.end_date);
+          ed.setHours(0, 0, 0, 0);
+          return sub.status === 'ACTIVE' && ed >= compareToday;
+        });
       }
+
+      const targetSub = activeSub || latestSub;
 
       let subStatus = 'NO_PLAN';
       let planName = 'N/A';
       let expiryDate = null;
 
-      if (latestSub) {
-        const endDate = new Date(latestSub.end_date);
-        planName = latestSub.MembershipPlan?.name || 'Unknown Plan';
-        expiryDate = latestSub.end_date;
+      if (targetSub) {
+        const endDate = new Date(targetSub.end_date);
+        endDate.setHours(0, 0, 0, 0);
+        planName = targetSub.MembershipPlan?.name || 'Unknown Plan';
+        expiryDate = targetSub.end_date;
 
-        if (endDate >= today && latestSub.status === 'ACTIVE') {
+        if (endDate >= compareToday && targetSub.status === 'ACTIVE') {
           subStatus = 'ACTIVE';
         } else {
           subStatus = 'EXPIRED';

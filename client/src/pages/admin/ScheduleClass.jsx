@@ -186,13 +186,14 @@ export default function ScheduleClass() {
                                         <div className="relative">
                                             <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                             <select
+                                                required
                                                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl font-bold outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
                                                 value={formData.trainer_id}
                                                 onChange={(e) => {
                                                     setFormData({ ...formData, trainer_id: e.target.value });
                                                     setScheduleTrainerId(e.target.value); // Sync calendar view
                                                 }}>
-                                                <option value="">⊘ Unassigned</option>
+                                                <option value="" disabled> Select a Trainer</option>
                                                 {trainers.map(t => (
                                                     <option key={t.user_id} value={t.user_id}>
                                                         {t.name} {!t.status ? '(Inactive)' : ''}

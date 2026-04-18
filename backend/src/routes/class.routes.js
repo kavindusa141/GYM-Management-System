@@ -6,7 +6,8 @@ const {
   updateClass, 
   updateClassStatus, 
   deleteClass, 
-  getTrainerClasses
+  getTrainerClasses,
+  delayClass
 } = require("../controllers/class.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 
@@ -21,6 +22,9 @@ router.put("/:id", verifyToken, allowRoles("ADMIN", "STAFF"), updateClass);
 
 // Update Status (Cancel/Complete/Restore) - Admin, Staff, and Trainer can perform on their classes
 router.put("/:id/status", verifyToken, allowRoles("ADMIN", "STAFF", "TRAINER"), updateClassStatus);
+
+// Delay Class (Admin, Staff, Trainer)
+router.put("/:id/delay", verifyToken, allowRoles("ADMIN", "STAFF", "TRAINER"), delayClass);
 
 // Delete Class (Admin & Staff Only)
 router.delete("/:id", verifyToken, allowRoles("ADMIN", "STAFF"), deleteClass);
