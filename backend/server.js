@@ -2,6 +2,9 @@ const app = require("./src/app");
 const sequelize = require("./src/config/db");
 require("dotenv").config();
 
+// Force Node.js timezone to UTC+05:30 (Sri Lanka/India standard time)
+process.env.TZ = "Asia/Colombo";
+
 const PORT = process.env.PORT || 5000;
 
 // Initialize Associations
