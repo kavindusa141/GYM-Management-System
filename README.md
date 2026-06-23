@@ -256,9 +256,7 @@ The application enforces security scopes on the router and layout levels. Users 
 | **Member Progress Logging** | ✅ | ✅ | ❌ | ❌ |
 | **Class Booking Calendar** | ✅ | ✅ | ✅ | ✅ |
 | **Manual Member Registration** | ✅ | ❌ | ✅ | ❌ |
-| **QR Code Generation & Download** | ❌ | ❌ | ❌ | ✅ |
-| **Stripe Checkout & Billing Portal** | ❌ | ❌ | ❌ | ✅ |
-| **Workout Logs / Exercise History** | ❌ | ❌ | ❌ | ✅ |
+
 
 ---
 
@@ -444,10 +442,7 @@ This application was delivered using a hybrid **Agile-Waterfall lifecycle** to e
 - 📅 **Milestone 4**: Payment Integration & Security Audit (Week 21)
 - 📅 **Milestone 5**: UAT and Final Handover Completed (Week 26)
 
-### RACI Responsibility Assignment Matrix
-- **A**ccountable for architectural design and database security settings: DBA & Lead Developer.
-- **R**esponsible for UI execution and Stripe routing integration: Frontend & Lead Developers.
-- **A**ccountable for overall delivery constraints, risk response plans, and schedule tracking: Project Manager.
+
 
 ---
 
