@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { 
-  Plus, Trash2, CheckCircle, Package, X, Layout, Edit2, RotateCcw, Sparkles, 
+import {
+  Plus, Trash2, CheckCircle, Package, X, Layout, Edit2, RotateCcw, Sparkles,
   ShieldCheck, Dumbbell, Clock, List, Calendar, Footprints
 } from 'lucide-react';
 
@@ -24,7 +24,7 @@ export default function CreateMembershipPlan() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentFeature, setCurrentFeature] = useState("");
-  const [editingId, setEditingId] = useState(null); 
+  const [editingId, setEditingId] = useState(null);
 
   // --- STATE ---
   const [formData, setFormData] = useState({
@@ -33,8 +33,8 @@ export default function CreateMembershipPlan() {
     duration_months: '1',
     description: '',
     features: [],
-    visit_limit_per_week: '', 
-    class_limit_per_week: '', 
+    visit_limit_per_week: '',
+    class_limit_per_week: '',
     access_start_time: '00:00',
     access_end_time: '23:59',
     includes_trainer: false
@@ -71,7 +71,7 @@ export default function CreateMembershipPlan() {
     if (!currentFeature.trim()) return;
     const currentFeatures = Array.isArray(formData.features) ? formData.features : [];
     setFormData({ ...formData, features: [...currentFeatures, currentFeature.trim()] });
-    setCurrentFeature(""); 
+    setCurrentFeature("");
   };
 
   const removeFeature = (indexToRemove) => {
@@ -102,9 +102,9 @@ export default function CreateMembershipPlan() {
 
   const cancelEdit = () => {
     setEditingId(null);
-    setFormData({ 
+    setFormData({
       name: '', price: '', duration_months: '1', description: '', features: [],
-      visit_limit_per_week: '', class_limit_per_week: '', 
+      visit_limit_per_week: '', class_limit_per_week: '',
       access_start_time: '00:00', access_end_time: '23:59', includes_trainer: false
     });
   };
@@ -128,9 +128,9 @@ export default function CreateMembershipPlan() {
         await api.post('/memberships', payload);
         toast.success("Plan Created Successfully!");
       }
-      setFormData({ 
+      setFormData({
         name: '', price: '', duration_months: '1', description: '', features: [],
-        visit_limit_per_week: '', class_limit_per_week: '', 
+        visit_limit_per_week: '', class_limit_per_week: '',
         access_start_time: '00:00', access_end_time: '23:59', includes_trainer: false
       });
       fetchPlans();
@@ -140,7 +140,7 @@ export default function CreateMembershipPlan() {
   };
 
   const handleDelete = async (id) => {
-    if(!window.confirm("Delete this plan?")) return;
+    if (!window.confirm("Delete this plan?")) return;
     try {
       await api.delete(`/memberships/${id}`);
       toast.success("Plan Deleted");
@@ -158,12 +158,12 @@ export default function CreateMembershipPlan() {
     if (n.includes('silver')) return 'bg-gradient-to-br from-gray-400 to-slate-500';
     if (n.includes('platinum')) return 'bg-gradient-to-br from-slate-300 to-gray-400 text-gray-800';
     if (n.includes('bronze')) return 'bg-gradient-to-br from-orange-700 to-orange-900';
-    
+
     // 2. Else, generate a consistent "Random" color based on the name string
     // This ensures the color stays the same for the same plan name, but varies across plans
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     const index = Math.abs(hash) % GRADIENTS.length;
     return GRADIENTS[index];
@@ -177,38 +177,38 @@ export default function CreateMembershipPlan() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* LEFT: FORM */}
         <div className={`p-8 rounded-3xl shadow-lg border h-fit transition-all duration-300 ${editingId ? 'bg-blue-50 border-blue-200 ring-4 ring-blue-500/10' : 'bg-white border-gray-100'}`}>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              {editingId ? <Edit2 className="text-blue-600" size={24}/> : <Layout className="text-slate-800" size={24}/>}
+              {editingId ? <Edit2 className="text-blue-600" size={24} /> : <Layout className="text-slate-800" size={24} />}
               {editingId ? "Edit Existing Package" : "Create New Package"}
             </h2>
             {editingId && (
               <button onClick={cancelEdit} className="text-sm font-bold text-gray-500 hover:text-red-600 flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm hover:shadow transition-all">
-                <RotateCcw size={14}/> Cancel
+                <RotateCcw size={14} /> Cancel
               </button>
             )}
           </div>
-          
+
           <form onSubmit={handleSubmit} className="space-y-8">
-            
+
             {/* SECTION 1: BASIC DETAILS */}
             <div className="space-y-5">
-               <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b border-blue-100 pb-2 flex items-center gap-2">
-                  <List size={16}/> Basic Details
-               </h3>
-               <div className="grid grid-cols-2 gap-5">
+              <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b border-blue-100 pb-2 flex items-center gap-2">
+                <List size={16} /> Basic Details
+              </h3>
+              <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Package Name</label>
                   <input type="text" required placeholder="e.g. Gold Tier" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-slate-900 outline-none font-bold text-gray-900"
-                    value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                    value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Price (LKR)</label>
                   <input type="number" required placeholder="0.00" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-slate-900 outline-none font-bold text-gray-900"
-                    value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                    value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} />
                 </div>
               </div>
 
@@ -216,7 +216,7 @@ export default function CreateMembershipPlan() {
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Duration</label>
                 <div className="relative">
                   <select className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-slate-900 outline-none appearance-none font-medium text-gray-700 cursor-pointer"
-                    value={formData.duration_months} onChange={e => setFormData({...formData, duration_months: e.target.value})}>
+                    value={formData.duration_months} onChange={e => setFormData({ ...formData, duration_months: e.target.value })}>
                     <option value="1">1 Month (Monthly)</option>
                     <option value="3">3 Months (Quarterly)</option>
                     <option value="6">6 Months (Semi-Annual)</option>
@@ -229,123 +229,123 @@ export default function CreateMembershipPlan() {
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Short Description</label>
                 <textarea rows="2" placeholder="Briefly describe who this plan is for..." className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-slate-900 outline-none transition-all font-medium text-gray-700 resize-none"
-                  value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
+                  value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}></textarea>
               </div>
             </div>
 
             {/* SECTION 2: ACCESS & LIMITS */}
             <div className="space-y-5">
-               <h3 className="text-sm font-bold text-emerald-600 uppercase tracking-wider border-b border-emerald-100 pb-2 flex items-center gap-2">
-                  <ShieldCheck size={16}/> Access & Limits
-               </h3>
-               
-               {/* Trainer Toggle */}
-               <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                      <Dumbbell size={16} className="text-emerald-600"/> Personal Trainer Access
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-1">Can trainers assign workouts to this plan?</p>
+              <h3 className="text-sm font-bold text-emerald-600 uppercase tracking-wider border-b border-emerald-100 pb-2 flex items-center gap-2">
+                <ShieldCheck size={16} /> Access & Limits
+              </h3>
+
+              {/* Trainer Toggle */}
+              <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                    <Dumbbell size={16} className="text-emerald-600" /> Personal Trainer Access
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1">Can trainers assign workouts to this plan?</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer"
+                    checked={formData.includes_trainer}
+                    onChange={e => setFormData({ ...formData, includes_trainer: e.target.checked })}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Weekly Visits (Max 7)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                    value={formData.visit_limit_per_week}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setFormData({ ...formData, visit_limit_per_week: '' });
+                      } else {
+                        const num = parseInt(val);
+                        if (num > 7) {
+                          toast.error("Maximum 7 visits per week allowed");
+                          setFormData({ ...formData, visit_limit_per_week: '7' });
+                        } else if (num < 0) {
+                          setFormData({ ...formData, visit_limit_per_week: '0' });
+                        } else {
+                          setFormData({ ...formData, visit_limit_per_week: val });
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Weekly Classes (Max 7)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                    value={formData.class_limit_per_week}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setFormData({ ...formData, class_limit_per_week: '' });
+                      } else {
+                        const num = parseInt(val);
+                        if (num > 7) {
+                          toast.error("Maximum 7 classes per week allowed");
+                          setFormData({ ...formData, class_limit_per_week: '7' });
+                        } else if (num < 0) {
+                          setFormData({ ...formData, class_limit_per_week: '0' });
+                        } else {
+                          setFormData({ ...formData, class_limit_per_week: val });
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Access Hours (Start - End)</label>
+                <div className="flex gap-2 items-center">
+                  <div className="relative flex-1">
+                    <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input type="time" className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-xl bg-white font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={formData.access_start_time} onChange={e => setFormData({ ...formData, access_start_time: e.target.value })} />
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" 
-                      checked={formData.includes_trainer}
-                      onChange={e => setFormData({...formData, includes_trainer: e.target.checked})}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                  </label>
-               </div>
-
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Weekly Visits (Max 7)</label>
-                    <input 
-                        type="number" 
-                        placeholder="Unlimited" 
-                        className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
-                        value={formData.visit_limit_per_week} 
-                        onChange={e => {
-                            const val = e.target.value;
-                            if (val === '') {
-                                setFormData({...formData, visit_limit_per_week: ''});
-                            } else {
-                                const num = parseInt(val);
-                                if (num > 7) {
-                                    toast.error("Maximum 7 visits per week allowed");
-                                    setFormData({...formData, visit_limit_per_week: '7'});
-                                } else if (num < 0) {
-                                    setFormData({...formData, visit_limit_per_week: '0'});
-                                } else {
-                                    setFormData({...formData, visit_limit_per_week: val});
-                                }
-                            }
-                        }} 
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Weekly Classes (Max 10)</label>
-                    <input 
-                        type="number" 
-                        placeholder="Unlimited" 
-                        className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
-                        value={formData.class_limit_per_week} 
-                        onChange={e => {
-                            const val = e.target.value;
-                            if (val === '') {
-                                setFormData({...formData, class_limit_per_week: ''});
-                            } else {
-                                const num = parseInt(val);
-                                if (num > 10) {
-                                    toast.error("Maximum 10 classes per week allowed");
-                                    setFormData({...formData, class_limit_per_week: '10'});
-                                } else if (num < 0) {
-                                    setFormData({...formData, class_limit_per_week: '0'});
-                                } else {
-                                    setFormData({...formData, class_limit_per_week: val});
-                                }
-                            }
-                        }} 
-                    />
-                 </div>
-               </div>
-
-               <div>
-                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Access Hours (Start - End)</label>
-                 <div className="flex gap-2 items-center">
-                    <div className="relative flex-1">
-                      <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                      <input type="time" className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-xl bg-white font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                        value={formData.access_start_time} onChange={e => setFormData({...formData, access_start_time: e.target.value})} />
-                    </div>
-                    <span className="text-gray-400 font-bold">-</span>
-                    <div className="relative flex-1">
-                      <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                      <input type="time" className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-xl bg-white font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                        value={formData.access_end_time} onChange={e => setFormData({...formData, access_end_time: e.target.value})} />
-                    </div>
-                 </div>
-               </div>
+                  <span className="text-gray-400 font-bold">-</span>
+                  <div className="relative flex-1">
+                    <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input type="time" className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-xl bg-white font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={formData.access_end_time} onChange={e => setFormData({ ...formData, access_end_time: e.target.value })} />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* SECTION 3: DISPLAY FEATURES */}
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-orange-600 uppercase tracking-wider border-b border-orange-100 pb-2 flex items-center gap-2">
-                  <CheckCircle size={16}/> Visual Features
-               </h3>
+                <CheckCircle size={16} /> Visual Features
+              </h3>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bullet Points (For Display Only)</label>
               <div className="flex gap-2">
                 <input type="text" placeholder="Type feature & press Enter" className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-slate-900 outline-none transition-all"
                   value={currentFeature} onChange={e => setCurrentFeature(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addFeature(e)} />
-                <button type="button" onClick={addFeature} className="bg-slate-900 text-white px-5 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20"><Plus size={24}/></button>
+                <button type="button" onClick={addFeature} className="bg-slate-900 text-white px-5 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20"><Plus size={24} /></button>
               </div>
-              
+
               <div className="flex flex-wrap gap-2 mt-4 min-h-[40px]">
                 {Array.isArray(formData.features) && formData.features.map((f, i) => (
                   <span key={i} className="animate-fade-in bg-white border border-gray-200 pl-3 pr-2 py-1.5 rounded-lg text-sm font-medium text-gray-700 flex items-center gap-2 shadow-sm group">
-                    {f} 
+                    {f}
                     <button type="button" onClick={() => removeFeature(i)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded p-0.5 transition-colors">
-                      <X size={14}/>
+                      <X size={14} />
                     </button>
                   </span>
                 ))}
@@ -360,12 +360,12 @@ export default function CreateMembershipPlan() {
 
         {/* RIGHT: Live Preview */}
         <div className="hidden lg:block space-y-4">
-           <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-             Live Preview
-           </h2>
-           <div className="sticky top-8">
+          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            Live Preview
+          </h2>
+          <div className="sticky top-8">
             <div className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100 max-w-sm mx-auto transform hover:scale-[1.02] transition-transform duration-500">
-              
+
               {/* Preview Header (Dynamic Color) */}
               <div className={`${getCardColor(formData.name)} p-8 text-white relative overflow-hidden`}>
                 <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -389,50 +389,50 @@ export default function CreateMembershipPlan() {
                 <p className="text-gray-500 text-sm mb-6 leading-relaxed">
                   {formData.description || "Package description will appear here..."}
                 </p>
-                
+
                 <div className="space-y-4">
                   {/* --- INJECTED LOGIC FEATURES --- */}
                   {formData.includes_trainer && (
                     <div className="flex items-center text-sm font-bold text-gray-800">
-                      <Dumbbell className="w-5 h-5 text-emerald-500 mr-3 shrink-0"/> Personal Trainer Included
+                      <Dumbbell className="w-5 h-5 text-emerald-500 mr-3 shrink-0" /> Personal Trainer Included
                     </div>
                   )}
                   {formData.visit_limit_per_week ? (
                     <div className="flex items-center text-sm font-bold text-gray-800">
-                      <Footprints className="w-5 h-5 text-blue-500 mr-3 shrink-0"/> {formData.visit_limit_per_week} Gym Visits per Week
+                      <Footprints className="w-5 h-5 text-blue-500 mr-3 shrink-0" /> {formData.visit_limit_per_week} Gym Visits per Week
                     </div>
                   ) : (
                     <div className="flex items-center text-sm font-bold text-gray-800">
-                      <CheckCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0"/> Unlimited Gym Access
+                      <CheckCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0" /> Unlimited Gym Access
                     </div>
                   )}
                   {formData.class_limit_per_week ? (
                     <div className="flex items-center text-sm font-bold text-gray-800">
-                      <Calendar className="w-5 h-5 text-purple-500 mr-3 shrink-0"/> {formData.class_limit_per_week} Classes per Week
+                      <Calendar className="w-5 h-5 text-purple-500 mr-3 shrink-0" /> {formData.class_limit_per_week} Classes per Week
                     </div>
                   ) : (
                     <div className="flex items-center text-sm font-bold text-gray-800">
-                      <CheckCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0"/> Unlimited Classes
+                      <CheckCircle className="w-5 h-5 text-blue-600 mr-3 shrink-0" /> Unlimited Classes
                     </div>
                   )}
                   {/* Time Access Feature */}
                   {(formData.access_start_time !== '00:00' && formData.access_end_time) && (
-                     <div className="flex items-center text-sm font-bold text-gray-800">
-                       <Clock className="w-5 h-5 text-orange-500 mr-3 shrink-0"/> Access: {formData.access_start_time} - {formData.access_end_time}
-                     </div>
+                    <div className="flex items-center text-sm font-bold text-gray-800">
+                      <Clock className="w-5 h-5 text-orange-500 mr-3 shrink-0" /> Access: {formData.access_start_time} - {formData.access_end_time}
+                    </div>
                   )}
 
                   {/* --- MANUAL FEATURES --- */}
                   {Array.isArray(formData.features) && formData.features.map((f, i) => (
                     <div key={i} className="flex items-center text-sm font-bold text-gray-600">
-                      <CheckCircle className="w-5 h-5 text-gray-400 mr-3 shrink-0"/>{f}
+                      <CheckCircle className="w-5 h-5 text-gray-400 mr-3 shrink-0" />{f}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
             <p className="text-center text-xs text-gray-400 mt-6">This is how the card will appear to members.</p>
-           </div>
+          </div>
         </div>
       </div>
 
@@ -440,7 +440,7 @@ export default function CreateMembershipPlan() {
       <div className="mt-16 pt-10 border-t border-gray-100">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-            <Package className="text-blue-600" size={28}/> Active Packages
+            <Package className="text-blue-600" size={28} /> Active Packages
           </h2>
           <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
             {plans.length} Live
@@ -459,13 +459,12 @@ export default function CreateMembershipPlan() {
               const planFeatures = getSafeFeatures(plan.features);
 
               return (
-                <div 
-                  key={plan.plan_id} 
-                  className={`relative group bg-white rounded-3xl overflow-hidden transition-all duration-300 flex flex-col ${
-                    editingId === plan.plan_id 
-                      ? 'ring-4 ring-blue-500/20 border-2 border-blue-600 shadow-2xl scale-[1.02] z-10' 
-                      : 'border border-gray-100 shadow-lg hover:shadow-xl hover:-translate-y-1'
-                  }`}
+                <div
+                  key={plan.plan_id}
+                  className={`relative group bg-white rounded-3xl overflow-hidden transition-all duration-300 flex flex-col ${editingId === plan.plan_id
+                    ? 'ring-4 ring-blue-500/20 border-2 border-blue-600 shadow-2xl scale-[1.02] z-10'
+                    : 'border border-gray-100 shadow-lg hover:shadow-xl hover:-translate-y-1'
+                    }`}
                 >
                   <div className={`${getCardColor(plan.name)} p-6 text-white relative overflow-hidden shrink-0`}>
                     <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-transform duration-700">
@@ -493,11 +492,11 @@ export default function CreateMembershipPlan() {
                     <p className="text-gray-500 text-sm mb-6 leading-relaxed min-h-[40px] line-clamp-2">
                       {plan.description || "No description provided."}
                     </p>
-                    
+
                     <div className="space-y-3 mb-8 flex-1">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Included Features</p>
                       <ul className="space-y-2.5">
-                        
+
                         {/* --- INJECTED LOGIC FEATURES IN LIST --- */}
                         {plan.includes_trainer && (
                           <li className="flex items-start gap-3 text-sm text-gray-800 font-bold">
@@ -513,27 +512,27 @@ export default function CreateMembershipPlan() {
                           </li>
                         ) : (
                           <li className="flex items-start gap-3 text-sm text-gray-800 font-bold">
-                             <CheckCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                             Unlimited Gym Access
+                            <CheckCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                            Unlimited Gym Access
                           </li>
                         )}
 
                         {plan.class_limit_per_week ? (
-                           <li className="flex items-start gap-3 text-sm text-gray-800 font-bold">
-                             <Calendar size={16} className="text-purple-500 shrink-0 mt-0.5" />
-                             {plan.class_limit_per_week} Classes per Week
-                           </li>
+                          <li className="flex items-start gap-3 text-sm text-gray-800 font-bold">
+                            <Calendar size={16} className="text-purple-500 shrink-0 mt-0.5" />
+                            {plan.class_limit_per_week} Classes per Week
+                          </li>
                         ) : (
-                            <li className="flex items-start gap-3 text-sm text-gray-800 font-bold">
-                             <CheckCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                             Unlimited Classes
-                           </li>
+                          <li className="flex items-start gap-3 text-sm text-gray-800 font-bold">
+                            <CheckCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                            Unlimited Classes
+                          </li>
                         )}
 
                         {(plan.access_start_time && plan.access_end_time && plan.access_start_time !== '00:00:00') && (
                           <li className="flex items-start gap-3 text-sm text-gray-800 font-bold">
                             <Clock size={16} className="text-orange-500 shrink-0 mt-0.5" />
-                            Access: {plan.access_start_time.slice(0,5)} - {plan.access_end_time.slice(0,5)}
+                            Access: {plan.access_start_time.slice(0, 5)} - {plan.access_end_time.slice(0, 5)}
                           </li>
                         )}
 
@@ -548,17 +547,17 @@ export default function CreateMembershipPlan() {
                     </div>
 
                     <div className="flex gap-3 pt-4 border-t border-gray-100 mt-auto">
-                      <button 
-                        onClick={() => handleEditClick(plan)} 
+                      <button
+                        onClick={() => handleEditClick(plan)}
                         className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 rounded-xl text-sm font-bold transition-colors"
                       >
                         <Edit2 size={16} /> Edit
                       </button>
-                      <button 
-                        onClick={() => handleDelete(plan.plan_id)} 
+                      <button
+                        onClick={() => handleDelete(plan.plan_id)}
                         className="flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-xl text-sm font-bold transition-colors group/delete"
                       >
-                        <Trash2 size={18} className="group-hover/delete:scale-110 transition-transform"/>
+                        <Trash2 size={18} className="group-hover/delete:scale-110 transition-transform" />
                       </button>
                     </div>
                   </div>

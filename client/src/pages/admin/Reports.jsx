@@ -768,75 +768,58 @@ export default function Reports() {
               )}
 
               {/* Detailed List */}
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex-1 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar">
-                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Detailed Log</h4>
-                <div className="space-y-0 divide-y divide-gray-50">
+              {activeTab !== 'RETENTION' && (
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex-1 min-h-[300px] max-h-[500px] overflow-y-auto custom-scrollbar">
+                  <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Detailed Log</h4>
+                  <div className="space-y-0 divide-y divide-gray-50">
 
-                  {activeTab === 'FINANCIAL' && data.financial.map((d, i) => (
-                    <div key={i} className="flex justify-between text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
-                      <span className="text-gray-600 font-medium">{d.date}</span>
-                      <span className="font-bold text-gray-900">{formatCurrency(d.total_revenue)}</span>
-                    </div>
-                  ))}
+                    {activeTab === 'FINANCIAL' && data.financial.map((d, i) => (
+                      <div key={i} className="flex justify-between text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
+                        <span className="text-gray-600 font-medium">{d.date}</span>
+                        <span className="font-bold text-gray-900">{formatCurrency(d.total_revenue)}</span>
+                      </div>
+                    ))}
 
-                  {activeTab === 'ATTENDANCE' && (
-                    <div className="space-y-0 divide-y divide-gray-50">
-                      {data.attendance_logs?.length > 0 ? (
-                        data.attendance_logs.map((log) => (
-                          <div key={log.id} className="flex justify-between items-center text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
-                            <div className="flex flex-col">
-                              <span className="text-gray-900 font-bold">{log.member_name}</span>
-                              <span className="text-[10px] text-gray-400">{log.date} at {log.check_in}</span>
+                    {activeTab === 'ATTENDANCE' && (
+                      <div className="space-y-0 divide-y divide-gray-50">
+                        {data.attendance_logs?.length > 0 ? (
+                          data.attendance_logs.map((log) => (
+                            <div key={log.id} className="flex justify-between items-center text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
+                              <div className="flex flex-col">
+                                <span className="text-gray-900 font-bold">{log.member_name}</span>
+                                <span className="text-[10px] text-gray-400">{log.date} at {log.check_in}</span>
+                              </div>
+                              <span className={`text-xs font-bold px-2 py-1 rounded-full ${log.status === 'PRESENT' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {log.status}
+                              </span>
                             </div>
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${log.status === 'PRESENT' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                              {log.status}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400 text-sm text-center py-4">No attendance records found.</p>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTab === 'MEMBERSHIP' && data.membership.map((d, i) => (
-                    <div key={i} className="flex justify-between items-center text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
-                      <div className="flex flex-col">
-                        <span className="text-gray-900 font-bold">{d.plan_name}</span>
-                        <span className="text-[10px] text-gray-400">
-                          {formatCurrency(d.plan_price)} / month
-                        </span>
+                          ))
+                        ) : (
+                          <p className="text-gray-400 text-sm text-center py-4">No attendance records found.</p>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <span className="block font-bold text-blue-600">{d.member_count} Active</span>
-                        <span className="text-[10px] text-gray-400">
-                          Est. {formatCurrency(d.estimated_value)}
-                        </span>
+                    )}
+
+                    {activeTab === 'MEMBERSHIP' && data.membership.map((d, i) => (
+                      <div key={i} className="flex justify-between items-center text-sm py-3 hover:bg-gray-50 px-2 rounded-lg transition">
+                        <div className="flex flex-col">
+                          <span className="text-gray-900 font-bold">{d.plan_name}</span>
+                          <span className="text-[10px] text-gray-400">
+                            {formatCurrency(d.plan_price)} / month
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="block font-bold text-blue-600">{d.member_count} Active</span>
+                          <span className="text-[10px] text-gray-400">
+                            Est. {formatCurrency(d.estimated_value)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
 
-                </div>
-
-                {activeTab === 'RETENTION' && (
-                  <div className="space-y-4 pt-2">
-                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100">
-                      <span className="text-red-800 font-bold text-sm">Churned (Range)</span>
-                      <span className="text-2xl font-black text-red-600">{data.retention.churn_count}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-xl border border-orange-100">
-                      <span className="text-orange-800 font-bold text-sm">Expiring Soon</span>
-                      <span className="text-2xl font-black text-orange-600">{data.retention.expiring_count}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl border border-blue-100">
-                      <span className="text-blue-800 font-bold text-sm">Active Members</span>
-                      <span className="text-2xl font-black text-blue-600">
-                        {data.membership.reduce((a, b) => a + b.member_count, 0)}
-                      </span>
-                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>

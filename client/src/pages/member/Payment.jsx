@@ -381,18 +381,27 @@ export default function MemberPayment() {
                       </ul>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        if (memberStats?.active) {
-                          setPendingPlan(plan);
-                        } else {
-                          setSelectedPlan(plan);
-                        }
-                      }}
-                      className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/20 group-hover:shadow-blue-600/30"
-                    >
-                      Choose Plan
-                    </button>
+                    {memberStats?.active && memberStats?.planName === plan.name ? (
+                      <button
+                        disabled
+                        className="w-full py-4 bg-gray-400 text-white rounded-xl font-bold cursor-not-allowed shadow-none"
+                      >
+                        Already Active
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (memberStats?.active) {
+                            setPendingPlan(plan);
+                          } else {
+                            setSelectedPlan(plan);
+                          }
+                        }}
+                        className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/20 group-hover:shadow-blue-600/30"
+                      >
+                        Choose Plan
+                      </button>
+                    )}
                   </div>
                 </div>
               );
