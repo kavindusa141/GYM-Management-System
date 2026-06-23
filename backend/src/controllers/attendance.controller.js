@@ -2,8 +2,8 @@ const Attendance = require("../models/Attendance");
 const User = require("../models/User");
 const UserSubscription = require("../models/UserSubscription");
 const MembershipPlan = require("../models/MembershipPlan");
-const ClassBooking = require("../models/ClassBooking"); 
-const crypto = require("crypto"); 
+const ClassBooking = require("../models/ClassBooking");
+const crypto = require("crypto");
 const { Op } = require("sequelize");
 
 // --- HELPER: Calculate Duration in Minutes ---
@@ -13,7 +13,7 @@ const calculateDuration = (startTime, endTime) => {
   const end = new Date(`1970-01-01T${endTime}Z`);
   const diffMs = end - start;
   // Return minutes (rounded)
-  return Math.round(diffMs / 60000); 
+  return Math.round(diffMs / 60000);
 };
 
 // --- NEW HELPER: Validate Entry Logic (Time & Limits) ---
@@ -26,7 +26,7 @@ const validateEntry = async (userId) => {
   });
 
   if (!sub) return { valid: false, message: "No active membership found." };
-  
+
   const plan = sub.MembershipPlan;
   const now = new Date();
 
@@ -34,15 +34,15 @@ const validateEntry = async (userId) => {
   // VALIDATION 1: ACCESS TIME (Dynamic from Plan)
   // ---------------------------------------------------------
   // Get current time in strictly 24-hour format (HH:MM:SS)
-  const currentTimeStr = now.toLocaleTimeString('en-GB', { hour12: false }); 
-  
+  const currentTimeStr = now.toLocaleTimeString('en-GB', { hour12: false });
+
   // Check if the plan has time restrictions defined in the database
   if (plan.access_start_time && plan.access_end_time) {
     // Compare string values: e.g. "19:00:00" > "17:00:00"
     if (currentTimeStr < plan.access_start_time || currentTimeStr > plan.access_end_time) {
-      return { 
-        valid: false, 
-        message: `Access denied. Your plan allows entry between ${plan.access_start_time} and ${plan.access_end_time}.` 
+      return {
+        valid: false,
+        message: `Access denied. Your plan allows entry between ${plan.access_start_time} and ${plan.access_end_time}.`
       };
     }
   }
@@ -54,11 +54,11 @@ const validateEntry = async (userId) => {
     // Calculate start (Sunday) and end (Saturday) of the current week
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay()); // Go back to Sunday
-    startOfWeek.setHours(0,0,0,0);
-    
+    startOfWeek.setHours(0, 0, 0, 0);
+
     const endOfWeek = new Date(now);
     endOfWeek.setDate(now.getDate() - now.getDay() + 6); // Go forward to Saturday
-    endOfWeek.setHours(23,59,59,999);
+    endOfWeek.setHours(23, 59, 59, 999);
 
     // A. Count Physical Visits (Attendance)
     const visitsThisWeek = await Attendance.count({
@@ -72,9 +72,9 @@ const validateEntry = async (userId) => {
     // B. Count Class Bookings (Confirmed)
     const bookingsThisWeek = await ClassBooking.count({
       where: {
-          user_id: userId,
-          status: 'CONFIRMED',
-          booking_date: { [Op.between]: [startOfWeek, endOfWeek] }
+        user_id: userId,
+        status: 'CONFIRMED',
+        booking_date: { [Op.between]: [startOfWeek, endOfWeek] }
       }
     });
 
@@ -82,9 +82,9 @@ const validateEntry = async (userId) => {
     const totalUsage = visitsThisWeek + bookingsThisWeek;
 
     if (totalUsage >= plan.visit_limit_per_week) {
-      return { 
-        valid: false, 
-        message: `Weekly limit reached (${plan.visit_limit_per_week} visits/week). You have used ${visitsThisWeek} visits and ${bookingsThisWeek} class bookings.` 
+      return {
+        valid: false,
+        message: `Weekly limit reached (${plan.visit_limit_per_week} visits/week). You have used ${visitsThisWeek} visits and ${bookingsThisWeek} class bookings.`
       };
     }
   }
@@ -103,10 +103,10 @@ exports.markAttendance = async (req, res) => {
 
     const today = new Date().toISOString().split('T')[0];
     const nowTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
-    
+
     // Check if a record exists for today
-    const existingEntry = await Attendance.findOne({ 
-      where: { member_id: user.user_id, attendance_date: today } 
+    const existingEntry = await Attendance.findOne({
+      where: { member_id: user.user_id, attendance_date: today }
     });
 
     // --- CHECK OUT LOGIC ---
@@ -118,20 +118,20 @@ exports.markAttendance = async (req, res) => {
 
       // Perform Check Out
       const duration = calculateDuration(existingEntry.check_in, nowTime);
-      
+
       await existingEntry.update({
         check_out: nowTime,
         duration: duration,
         status: 'CHECKED_OUT'
       });
 
-      return res.status(200).json({ 
-        message: `Check-out Successful! Duration: ${duration} mins`, 
-        member: user.name 
+      return res.status(200).json({
+        message: `Check-out Successful! Duration: ${duration} mins`,
+        member: user.name
       });
     }
 
-    // --- VALIDATION: ONLY RUN BEFORE CHECK-IN ---
+
     // This validates time and visit limits against the ACTIVE plan
     const validation = await validateEntry(user.user_id);
     if (!validation.valid) {
@@ -158,9 +158,9 @@ exports.markAttendance = async (req, res) => {
 exports.getDailyQRPayload = (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const secret = "ROYAL_GYM_SECRET"; 
+    const secret = "ROYAL_GYM_SECRET";
     const hash = crypto.createHash('sha256').update(today + secret).digest('hex');
-    
+
     const qrPayload = JSON.stringify({ date: today, token: hash });
     res.json({ payload: qrPayload });
   } catch (err) {
@@ -203,7 +203,7 @@ exports.getMyAttendance = async (req, res) => {
 exports.markAttendanceByQR = async (req, res) => {
   try {
     const { scanned_data } = req.body;
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
     if (!scanned_data) return res.status(400).json({ message: "No QR data found" });
 
@@ -221,7 +221,7 @@ exports.markAttendanceByQR = async (req, res) => {
     if (date !== today) {
       return res.status(400).json({ message: "This QR Code has expired. Please scan today's code." });
     }
-    const secret = "ROYAL_GYM_SECRET"; 
+    const secret = "ROYAL_GYM_SECRET";
     const expectedHash = crypto.createHash('sha256').update(today + secret).digest('hex');
     if (token !== expectedHash) {
       return res.status(400).json({ message: "Security Check Failed. Invalid QR." });
@@ -230,8 +230,8 @@ exports.markAttendanceByQR = async (req, res) => {
     const nowTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
 
     // Check existing entry
-    const existingEntry = await Attendance.findOne({ 
-      where: { member_id: userId, attendance_date: today } 
+    const existingEntry = await Attendance.findOne({
+      where: { member_id: userId, attendance_date: today }
     });
 
     // --- CHECK OUT LOGIC (QR) ---

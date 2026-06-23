@@ -4,13 +4,13 @@ import { Mail, ArrowRight, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-// Optional: Import a background if you want it to match Login
-import LoginBG from '../../assets/images/GYM_Background.jpg'; 
+//Import a background if you want it to match Login
+import LoginBG from '../../assets/images/GYM_Background.jpg';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   // Validation State
   const [error, setError] = useState('');
   const [touched, setTouched] = useState(false);
@@ -38,7 +38,7 @@ export default function ForgotPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const validationError = validateEmail(email);
     if (validationError) {
       setTouched(true);
@@ -67,19 +67,19 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-900">
-      
+
       {/* Background (Matches Login Page) */}
       <div className="absolute inset-0 z-0">
-        <img src={LoginBG} alt="Background" className="w-full h-full object-cover opacity-40"/>
+        <img src={LoginBG} alt="Background" className="w-full h-full object-cover opacity-40" />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-blue-900/30" />
       </div>
 
       <div className="relative z-10 w-full max-w-md px-4 animate-fade-in-up">
         <div className="glass-card rounded-2xl overflow-hidden shadow-2xl relative border border-gray-700/50 backdrop-blur-md bg-gray-900/60">
-          
+
           {/* Close Button */}
-          <Link 
-            to="/login" 
+          <Link
+            to="/login"
             className="absolute top-4 right-4 p-2 rounded-full bg-gray-800/50 hover:bg-gray-700 text-gray-400 hover:text-white transition-all z-20"
             title="Back to Login"
           >
@@ -89,14 +89,14 @@ export default function ForgotPassword() {
           <div className="p-8">
             <h2 className="text-3xl font-bold text-white text-center mb-2">Recover Account</h2>
             <p className="text-gray-400 text-center mb-8 text-sm">Enter your email to receive a reset link</p>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="group">
                 <label className="text-xs font-bold text-gray-500 tracking-wider mb-1 block">EMAIL ADDRESS</label>
                 <div className="relative">
                   <Mail className={`absolute left-3 top-3.5 h-5 w-5 ${error ? 'text-red-500' : 'text-gray-500'}`} />
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     className={getInputClass()}
                     placeholder="you@example.com"
                     value={email}
@@ -107,12 +107,12 @@ export default function ForgotPassword() {
                   {touched && !error && <CheckCircle className="absolute right-3 top-3.5 h-5 w-5 text-green-500" />}
                 </div>
                 {/* Error Message */}
-                {error && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10}/> {error}</p>}
+                {error && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={10} /> {error}</p>}
               </div>
 
-              <button 
-                type="submit" 
-                disabled={loading} 
+              <button
+                type="submit"
+                disabled={loading}
                 className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition flex justify-center items-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Sending...' : <>Send Link <ArrowRight className="w-5 h-5" /></>}

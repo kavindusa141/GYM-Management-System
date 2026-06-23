@@ -89,6 +89,19 @@ exports.createStripeCheckoutSession = async (req, res) => {
       return res.status(400).json({ message: "You already have a pending bank slip payment. Please wait for admin approval." });
     }
 
+    // Check if user already has an active subscription for the SAME plan
+    const activeSubscription = await UserSubscription.findOne({
+      where: {
+        user_id,
+        plan_id,
+        status: 'ACTIVE'
+      }
+    });
+
+    if (activeSubscription) {
+      return res.status(400).json({ message: "You already have an active subscription for this plan. You can only activate a different plan." });
+    }
+
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -266,6 +279,24 @@ exports.createPayment = async (req, res) => {
       console.log("PAYMENT 400 ERROR: Pending exists for user", user_id);
       return res.status(400).json({
         message: "You already have a pending payment awaiting admin approval"
+      });
+    }
+
+    // ===============================
+    // SAME PLAN PROTECTION
+    // ===============================
+    const activeSubscription = await UserSubscription.findOne({
+      where: {
+        user_id,
+        plan_id,
+        status: 'ACTIVE'
+      }
+    });
+
+    if (activeSubscription) {
+      console.log("PAYMENT 400 ERROR: User already has this plan active", user_id);
+      return res.status(400).json({
+        message: "You already have an active subscription for this plan. You can only activate a different plan."
       });
     }
 

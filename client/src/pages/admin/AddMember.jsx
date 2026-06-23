@@ -18,12 +18,12 @@ export default function AddMember() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) {
             return toast.error("Please enter a valid email address");
         }
-        
+
         if (formData.phone && formData.phone.length !== 10) {
             return toast.error("Phone number must be exactly 10 digits");
         }
@@ -89,7 +89,7 @@ export default function AddMember() {
                                         required
                                         type="text"
                                         className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gateway-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none font-bold text-gray-900 transition-all placeholder:text-gray-400"
-                                        placeholder="e.g. John Doe"
+                                        placeholder="e.g. kavindu"
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
@@ -105,7 +105,7 @@ export default function AddMember() {
                                             required
                                             type="email"
                                             className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none font-bold text-gray-900 transition-all placeholder:text-gray-400"
-                                            placeholder="john@example.com"
+                                            placeholder="kavi@example.com"
                                             value={formData.email}
                                             onChange={e => setFormData({ ...formData, email: e.target.value })}
                                         />

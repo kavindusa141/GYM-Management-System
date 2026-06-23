@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { 
-  markAttendance, 
-  getTodayAttendance, 
+const {
+  markAttendance,
+  getTodayAttendance,
   getDailyQRPayload,
   getMyAttendance,
-  markAttendanceByQR // <--- Import this
+  markAttendanceByQR
 } = require("../controllers/attendance.controller");
 const { verifyToken, allowRoles } = require("../middleware/auth.middleware");
 

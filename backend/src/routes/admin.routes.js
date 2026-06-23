@@ -22,8 +22,8 @@ const {
   createEmployee,
   getAllTrainers,
   deleteEmployee,
-  getExpiredAssignedMembers, // Added
-  getMemberProfileById // Added
+  getExpiredAssignedMembers,
+  getMemberProfileById
 
 } = require("../controllers/admin.controller");
 const { getReportsData, getMemberReportData } = require("../controllers/reports.controller");
